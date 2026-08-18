@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>GPS 与经纬度 · 基础概念</title>
+<meta name="description" content="从零讲解：经纬度是什么、WGS-84 坐标系、GPS 卫星定位原理、误差与漂移、为什么轨迹数据用经纬度。" />
+<link rel="stylesheet" href="../assets/css/style.css" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%237c3aed'/%3E%3Ctext x='16' y='22' font-size='18' text-anchor='middle' fill='white' font-family='Arial' font-weight='bold'%3E%E2%9A%99%3C/text%3E%3C/svg%3E" />
+</head>
+<body>
+
+<header class="site-header">
+  <div class="container">
+    <nav class="nav" aria-label="主导航">
+      <a class="brand" href="../index.html"><span class="brand-mark" aria-hidden="true"></span><span>轨迹数据分析</span></a>
+      <div class="nav-links">
+        <a href="../index.html">主页</a>
+        <a href="./gps.html">基础概念</a>
+        <a href="../index.html#datasets">数据集</a>
+        <a href="../analysis/overview.html">分析</a>
+        <a href="../methodology/pipeline.html">方法</a>
+      </div>
+      <button class="theme-toggle" aria-label="切换主题">☾</button>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="container-narrow">
+
+    <div class="crumbs">
+      <a href="../index.html">主页</a><span class="sep">/</span>
+      <a href="../index.html#learning">基础概念</a><span class="sep">/</span>
+      <span>GPS 与经纬度</span>
+    </div>
+
+    <span class="section-eyebrow" style="color:var(--guide);">基础概念 · 第 1 课</span>
+    <h1>GPS 与经纬度：先建立坐标直觉</h1>
+    <p>
+      打开任何一个轨迹数据文件，最先看到的就是两个小数：<code>116.51172</code> 和
+      <code>39.92123</code>。在读懂数据之前，先花 5 分钟搞懂这两个数到底在说什么。
+      它们不是随机的坐标，而是一套全球统一的"地球地址系统"。
+    </p>
+
+    <hr/>
+
+    <!-- 经纬度 -->
+    <h2 id="latlon">经纬度：给地球画上网格</h2>
+    <p>
+      想象地球是一个球。为了说清楚"球面上的某一点在哪"，人类在地球表面画了两组假想的线：
+    </p>
+    <ul>
+      <li><strong>纬线（Latitude）</strong>：横着的一圈圈平行线，从赤道（0°）往北到北极（90°N）、往南到南极（90°S）。</li>
+      <li><strong>经线（Longitude）</strong>：竖着、连接南北两极的半圆，以英国格林尼治天文台为 0°，向东 0-180°E、向西 0-180°W。</li>
+    </ul>
+    <p>
+      一个点的位置 = 它所在纬线的度数 + 经线的度数，写作 <code>(经度, 纬度)</code>。
+      比如北京天安门大约在 <strong>经度 116.39°E、纬度 39.91°N</strong>。
+    </p>
+
+    <div class="diagram">
+      <svg viewBox="0 0 640 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="经纬度网格示意图">
+        <!-- 地球（侧视） -->
+        <ellipse cx="320" cy="150" rx="150" ry="110" fill="#1e3a5f" stroke="#60a5fa" stroke-width="2"/>
+        <!-- 纬线 -->
+        <ellipse cx="320" cy="150" rx="150" ry="38" fill="none" stroke="#f59e0b" stroke-width="1.2" stroke-dasharray="4 3"/>
+        <line x1="170" y1="150" x2="470" y2="150" stroke="#f59e0b" stroke-width="1.6"/>
+        <ellipse cx="320" cy="90" rx="118" ry="24" fill="none" stroke="#fbbf24" stroke-width="1" stroke-dasharray="3 3"/>
+        <!-- 经线 -->
+        <line x1="320" y1="40" x2="320" y2="260" stroke="#60a5fa" stroke-width="1.4"/>
+        <ellipse cx="320" cy="150" rx="70" ry="110" fill="none" stroke="#93c5fd" stroke-width="1" stroke-dasharray="3 3"/>
+        <ellipse cx="320" cy="150" rx="130" ry="110" fill="none" stroke="#93c5fd" stroke-width="1" stroke-dasharray="3 3"/>
+        <!-- 目标点 -->
+        <circle cx="405" cy="120" r="7" fill="#ef4444"/>
+        <text x="425" y="115" fill="#ef4444" font-size="13" font-weight="bold">出租车位置</text>
+        <!-- 标注 -->
+        <text x="475" y="150" fill="#f59e0b" font-size="12">赤道 0°（纬线起点）</text>
+        <text x="60" y="100" fill="#93c5fd" font-size="12">经线</text>
+        <text x="255" y="38" fill="#fbbf24" font-size="12">纬线</text>
+        <text x="478" y="270" fill="#7b8794" font-size="11">经度 = 东西位置 · 纬度 = 南北位置</text>
+      </svg>
+      <div class="caption">经纬度 = 球面上的"行"和"列"。红色圆点代表一辆出租车，它同时落在一条经线和一条纬线上。</div>
+    </div>
+
+    <div class="why">
+      <span class="icon">💡</span>
+      <div>
+        <strong>为什么用度数而不是"米"？</strong>
+        因为地球是圆的，地面上的"1 公里"在赤道和在北京对应的角度不同。
+        用度数描述位置是统一的、与地点无关的；而"向东 500 米"必须知道你在哪才能换算。
+        这也是为什么所有轨迹数据都用经纬度——它是<b>全球通用</b>的语言。
+      </div>
+    </div>
+
+    <h3>两种写法：度分秒 vs 小数度</h3>
+    <p>
+      同一个位置有两种写法，你会在不同资料里都遇到：
+    </p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>写法</th><th>示例</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td>度分秒（DMS）</td><td>39° 55′ 16″ N</td><td>常见于纸质地图、航图</td></tr>
+          <tr><td>小数度（DD）</td><td>39.92111</td><td>常见于 GPS 原始数据，<b>本项目全部用这种</b></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>
+      换算很简单：<code>39°55′16″ = 39 + 55/60 + 16/3600 ≈ 39.9211</code>。
+      反过来，小数的小数部分 ×60 就能拆回分秒。
+    </p>
+
+    <hr/>
+
+    <!-- WGS-84 -->
+    <h2 id="wgs84">WGS-84：全球统一的地球模型</h2>
+    <p>
+      地球其实不是正球体，而是赤道鼓、两极扁的"椭球"。如果每个国家用自己的椭球模型，
+      同一个 GPS 信号算出来的坐标就会不一样。为了全球通用，GPS 系统使用一套标准模型叫
+      <strong>WGS-84</strong>（World Geodetic System 1984）。
+    </p>
+    <p>
+      你看到的 <code>116.51172, 39.92123</code> 就是基于 WGS-84 椭球算出的经纬度。
+      <strong>本项目的北京、深圳、无锡数据都是 WGS-84 坐标</strong>——这意味着它们可以直接互相比较，
+      也可以直接投到任何支持 WGS-84 的地图引擎上。
+    </p>
+
+    <div class="why">
+      <span class="icon">⚠️</span>
+      <div>
+        <strong>中国地图的"坐标偏移"（重要但不难）</strong>
+        如果你把 WGS-84 坐标直接叠到国内常见地图 App 上，会发现偏了几百米。
+        因为国内地图服务（高德、百度等）使用加密坐标系 <b>GCJ-02</b> / <b>BD-09</b>，
+        需要先做偏移转换。做<b>数据分析</b>时我们用原始 WGS-84 即可（保持一致性）；
+        只有做<b>地图叠加展示</b>时才需要转换。下面展开讲清楚这背后的机制。
+      </div>
+    </div>
+
+    <hr/>
+
+    <!-- 坐标偏移 GCJ-02 / BD-09 -->
+    <h2 id="offset">坐标偏移：WGS-84 之外的两套"中国坐标系"</h2>
+    <p>
+      这是处理中国轨迹数据时必须理解的"底层"知识。GPS 卫星给的是 WGS-84，
+      但<b>出于法规，中国大陆的公开地图不允许直接使用 WGS-84</b>，而是经过一套非线性加密，
+      产生两套"偏移坐标"：
+    </p>
+    <ul>
+      <li><strong>GCJ-02（火星坐标系）</strong>：国测局在 WGS-84 基础上加的随机偏移，偏移量约 <b>50~700 米</b>，且随经纬度非线性变化（同一城市不同区偏移不同）。高德、腾讯地图用的是它。</li>
+      <li><strong>BD-09</strong>：百度在 GCJ-02 基础上又加了一次偏移。百度地图用的是它，比 GCJ-02 再偏一点。</li>
+    </ul>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>坐标系</th><th>谁在用</th><th>与 WGS-84 关系</th><th>本项目数据属于</th></tr></thead>
+        <tbody>
+          <tr><td>WGS-84</td><td>GPS 原始 / Google 国际版 / OSM</td><td>基准（0 偏移）</td><td><b>✅ 北京/深圳/无锡都是这套</b></td></tr>
+          <tr><td>GCJ-02</td><td>高德 / 腾讯 / 谷歌中国</td><td>WGS-84 + 非线性偏移(~百米)</td><td>❌ 不是</td></tr>
+          <tr><td>BD-09</td><td>百度</td><td>GCJ-02 + 再偏移</td><td>❌ 不是</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="diagram">
+      <svg viewBox="0 0 640 260" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="WGS-84 与 GCJ-02 偏移示意">
+        <!-- 真实位置 -->
+        <circle cx="250" cy="130" r="8" fill="#22c55e"/>
+        <text x="250" y="115" text-anchor="middle" fill="#22c55e" font-size="12" font-weight="bold">真实位置 (WGS-84)</text>
+        <!-- GCJ-02 偏移 -->
+        <circle cx="360" cy="150" r="8" fill="#f59e0b"/>
+        <text x="360" y="175" text-anchor="middle" fill="#f59e0b" font-size="12" font-weight="bold">GCJ-02 (+偏移)</text>
+        <!-- BD-09 再偏移 -->
+        <circle cx="430" cy="105" r="8" fill="#ef4444"/>
+        <text x="430" y="90" text-anchor="middle" fill="#ef4444" font-size="12" font-weight="bold">BD-09 (再偏移)</text>
+        <!-- 连线 -->
+        <line x1="258" y1="130" x2="352" y2="148" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="4 3"/>
+        <line x1="368" y1="146" x2="422" y2="110" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="4 3"/>
+        <text x="305" y="200" text-anchor="middle" fill="#7b8794" font-size="11">相邻坐标系之间差几百米 → 直接叠加会"漂移"</text>
+        <text x="305" y="222" text-anchor="middle" fill="#7b8794" font-size="11">本项目数据统一用 WGS-84，跨源比较时务必先对齐坐标系</text>
+      </svg>
+      <div class="caption">同一个物理点，在三种坐标系下是三个不同的数字。分析时若把 WGS-84 和 GCJ-02 混用，轨迹会对不上。</div>
+    </div>
+
+    <div class="why">
+      <span class="icon">💡</span>
+      <div>
+        <strong>为什么这对分析很重要？</strong>
+        当你把<b>出租车 GPS（WGS-84）</b>和<b>高德路网（GCJ-02）</b>叠在一起做"这条路堵不堵"时，
+        如果不转换，每个点都会偏出去几百米，可能直接落到河里或隔壁楼。
+        本项目所有数据集都声明为 WGS-84，所以它们彼此之间可以直接比较；
+        只有要把结果画到国内地图底图上时才需要 GCJ-02 转换（可用公开算法如 <code>evparse</code>/<code>coordtransform</code> 在本地算，<b>不依赖联网</b>）。
+      </div>
+    </div>
+
+    <hr/>
+
+    <!-- GPS 精度 -->
+    <h2 id="accuracy">GPS 精度：误差到底是多大</h2>
+    <p>
+      精度（accuracy）指"算出来的位置离真实位置差多少"，和"小数位数"（precision）是两回事。
+      把经纬度写到小数点后 6 位，看起来很精确，<b>但 GPS 本身误差可能有十几米</b>——
+      多出来的小数位只是"精确的错"。
+    </p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>场景</th><th>典型水平误差</th><th>直观感受</th></tr></thead>
+        <tbody>
+          <tr><td>开阔天空（郊区/高速）</td><td>3~5 米</td><td>约一个车身长</td></tr>
+          <tr><td>城市街道（高楼夹击）</td><td>5~20 米</td><td>可能落到隔壁车道甚至对面</td></tr>
+          <tr><td>高架下 / 隧道 / 室内</td><td>20~100+ 米或丢失</td><td>点会"跳"到几百米外</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>
+      这就是为什么轨迹里会出现<b>两条一模一样的记录</b>、或<b>坐标突然跳到很远又跳回来</b>：
+      不是车瞬移了，是定位在抖动。分析前做<b>去重 + 静止点合并 + 速度合理性过滤</b>能显著改善质量。
+      也可以注意：<code>speed</code> 字段若来自 GPS 多普勒测速，在静止时可能报几 km/h 的"假速度"，
+      需要和"坐标几乎不变"交叉判断。
+    </p>
+
+    <hr/>
+
+    <!-- GPS 定位原理 -->
+    <h2 id="gps">GPS 是怎么定位的？</h2>
+    <p>
+      简单说：<strong>卫星不断广播"我现在在哪 + 现在几点"</strong>，
+      接收器同时听到至少 4 颗卫星的信号，根据信号到达的时间差，算出自己到每颗卫星的距离，
+      再用几何方法反推自己的位置。距离已知、卫星位置已知，就能解出"我是谁（坐标）"。
+    </p>
+
+    <div class="diagram">
+      <svg viewBox="0 0 640 280" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="GPS 三球交会定位示意">
+        <!-- 卫星 1 -->
+        <circle cx="140" cy="60" r="18" fill="#2563eb"/>
+        <text x="140" y="65" text-anchor="middle" fill="#fff" font-size="12" font-weight="bold">卫星1</text>
+        <circle cx="140" cy="60" r="120" fill="none" stroke="#60a5fa" stroke-width="1.2" stroke-dasharray="4 4"/>
+        <!-- 卫星 2 -->
+        <circle cx="500" cy="60" r="18" fill="#16a085"/>
+        <text x="500" y="65" text-anchor="middle" fill="#fff" font-size="12" font-weight="bold">卫星2</text>
+        <circle cx="500" cy="60" r="135" fill="none" stroke="#2dd4bf" stroke-width="1.2" stroke-dasharray="4 4"/>
+        <!-- 卫星 3 -->
+        <circle cx="320" cy="40" r="18" fill="#d35400"/>
+        <text x="320" y="45" text-anchor="middle" fill="#fff" font-size="12" font-weight="bold">卫星3</text>
+        <circle cx="320" cy="40" r="150" fill="none" stroke="#fdba74" stroke-width="1.2" stroke-dasharray="4 4"/>
+        <!-- 接收器 -->
+        <circle cx="330" cy="215" r="10" fill="#ef4444"/>
+        <text x="330" y="240" text-anchor="middle" fill="#ef4444" font-size="13" font-weight="bold">出租车 GPS 接收器</text>
+        <text x="330" y="262" text-anchor="middle" fill="#7b8794" font-size="11">每颗卫星画一个"以我为圆心、以距离为半径"的球面，三个球面交于一点</text>
+      </svg>
+      <div class="caption">三颗卫星的距离足以确定平面位置，第四颗用于校正接收器时钟误差（实际定位需要 ≥4 颗）。</div>
+    </div>
+
+    <div class="why">
+      <span class="icon">💡</span>
+      <div>
+        <strong>为什么轨迹会有"漂移"？</strong>
+        信号穿过大气层有延迟、高楼会反射信号（多径效应）、接收器时钟有偏差。
+        所以 GPS 定位有误差，通常 5~20 米。这就是你在北京样本里会看到
+        <b>两条一模一样的记录</b>（同一时间同一位置重复）的原因——不一定是车没动，
+        可能是定位抖动。分析前做<b>去重 + 静止点合并</b>能显著改善质量。
+      </div>
+    </div>
+
+    <hr/>
+
+    <h2 id="summary">小结</h2>
+    <ul>
+      <li><strong>经纬度</strong> = 地球网格上的行（纬度）与列（经度），度数全球通用。</li>
+      <li><strong>WGS-84</strong> = GPS 使用的标准地球模型，本项目三个数据集都是它。</li>
+      <li><strong>坐标偏移</strong> = 中国大陆公开地图多用 GCJ-02 / BD-09，比 WGS-84 偏几百米；跨源比较必须先对齐坐标系。</li>
+      <li><strong>精度 vs 误差</strong> = 小数位数不代表准，城市里 GPS 误差常 5~20 米，会出现重复/抖动点。</li>
+      <li>轨迹数据的本质：<strong>一个移动的点，按固定间隔记录下来的经纬度序列</strong>。</li>
+    </ul>
+
+    <div style="display:flex;gap:12px;flex-wrap:wrap;margin:30px 0;">
+      <a class="btn ghost" href="../index.html">← 返回主页</a>
+      <a class="btn" href="./trajectory.html">下一课：轨迹数据与字段 →</a>
+    </div>
+
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="container"><div class="row">
+    <div>出租车轨迹数据分析 · 从 GPS 到分析</div>
+    <div>数据归各自来源所有 · 代码 MIT</div>
+  </div></div>
+</footer>
+
+<button class="to-top" aria-label="返回顶部">↑</button>
+<script src="../assets/js/main.js"></script>
+</body>
+</html>

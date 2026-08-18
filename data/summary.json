@@ -1,0 +1,95 @@
+{
+  "project": {
+    "name": "出租车轨迹数据分析",
+    "name_en": "Taxi Trajectory Data Analysis",
+    "version": "1.0.0",
+    "description": "面向三个中国城市的出租车 GPS 轨迹数据可视化与分析项目，覆盖北京 (T-Drive, 2008)、深圳 (2014)、无锡 (2020-2022) 三个数据集。",
+    "license": "MIT"
+  },
+  "cities": {
+    "beijing": {
+      "name_zh": "北京",
+      "name_en": "Beijing",
+      "dataset": "T-Drive Trajectory Data",
+      "source": "微软研究院 T-Drive 项目 (公开学术数据集)",
+      "period": "2008-02-02 至 2008-02-08 (一周)",
+      "taxis": 10357,
+      "files": 8911,
+      "compressed_size": "73 MB",
+      "uncompressed_size": "452 MB",
+      "fields": [
+        {"name": "taxi_id", "desc": "出租车 ID", "example": "1"},
+        {"name": "timestamp", "desc": "GPS 时间戳", "example": "2008-02-02 15:36:08"},
+        {"name": "longitude", "desc": "经度 (北京范围 116.4°E - 116.7°E)", "example": "116.51172"},
+        {"name": "latitude", "desc": "纬度 (北京范围 39.8°N - 40.0°N)", "example": "39.92123"}
+      ],
+      "interval_seconds": 600,
+      "color": "#c0392b"
+    },
+    "shenzhen": {
+      "name_zh": "深圳",
+      "name_en": "Shenzhen",
+      "dataset": "深圳市出租车轨迹数据",
+      "source": "公开数据集 (2014-10-22 当日，按小时切片)",
+      "period": "2014-10-22 (单日 24 小时切片)",
+      "rows_total": 46964586,
+      "rows_estimated": "≈ 4700 万",
+      "files": 24,
+      "fields": [
+        {"name": "trajectory_id", "desc": "车辆/轨迹 ID", "example": "22223"},
+        {"name": "date", "desc": "当日 HH:MM:SS 时间戳", "example": "12:25:29"},
+        {"name": "lon", "desc": "经度 (深圳范围 113.8°E - 114.6°E)", "example": "114.126831"},
+        {"name": "lat", "desc": "纬度 (深圳范围 22.4°N - 22.9°N)", "example": "22.574051"},
+        {"name": "passenger", "desc": "是否载客 (0=空车, 1=载客)", "example": "1"},
+        {"name": "speed(km/h)", "desc": "瞬时速度 (km/h)", "example": "19"}
+      ],
+      "interval_seconds": 90,
+      "color": "#d35400"
+    },
+    "wuxi": {
+      "name_zh": "无锡",
+      "name_en": "Wuxi",
+      "dataset": "无锡车辆轨迹数据 (含出租车/网约车多源数据)",
+      "source": "公开数据集 (按日切片)",
+      "period": "文件名 2020-07-18 至 2020-08-17 (约一个月)",
+      "files": 32,
+      "fields": [
+        {"name": "id", "desc": "设备/车辆 ID", "example": "0086627503166932"},
+        {"name": "经度", "desc": "经度 (无锡范围 119.9°E - 120.6°E)", "example": "120.5780533"},
+        {"name": "纬度", "desc": "纬度 (无锡范围 31.2°N - 31.9°N)", "example": "31.8061016"},
+        {"name": "采集时间", "desc": "采集时间 (YYYY-MM-DD HH:MM:SS)", "example": "2020-07-18 08:00:00"},
+        {"name": "方向", "desc": "航向角 (度, 0-360)", "example": "0"},
+        {"name": "速度", "desc": "瞬时速度 (km/h)", "example": "0"},
+        {"name": "纵向加速度", "desc": "纵向加速度 (m/s²)", "example": "-9"},
+        {"name": "横向加速度", "desc": "横向加速度 (m/s²)", "example": "0"},
+        {"name": "垂直加速度", "desc": "垂直方向加速度 (m/s²)", "example": "1"},
+        {"name": "横摆角速度", "desc": "横摆角速度 (deg/s)", "example": "0"}
+      ],
+      "interval_seconds": "≈ 30-60 (不同设备采样间隔不同)",
+      "color": "#16a085"
+    }
+  },
+  "analyses": {
+    "panels": [
+      {"index": 1, "title": "轨迹点分布", "kind": "scatter"},
+      {"index": 2, "title": "单辆出租车详细轨迹", "kind": "line"},
+      {"index": 3, "title": "时间分布热力图 (小时 × 周几)", "kind": "heatmap"},
+      {"index": 4, "title": "各出租车记录点数统计", "kind": "bar"},
+      {"index": 5, "title": "活动时长分布", "kind": "hist"},
+      {"index": 6, "title": "经度分布", "kind": "hist"},
+      {"index": 7, "title": "纬度分布", "kind": "hist"},
+      {"index": 8, "title": "每小时活动统计", "kind": "line"},
+      {"index": 9, "title": "经纬度分布密度", "kind": "hist2d"},
+      {"index": 10, "title": "多辆出租车轨迹对比", "kind": "line"},
+      {"index": 11, "title": "每天活动统计", "kind": "line"},
+      {"index": 12, "title": "活动范围统计", "kind": "scatter"}
+    ]
+  },
+  "tech": {
+    "language": "Python 3.x",
+    "libs": ["pandas", "matplotlib", "numpy", "pathlib"],
+    "extract_tool": "7-Zip",
+    "frontend": "原生 HTML + CSS + JavaScript (无构建步骤)",
+    "deploy": "GitHub Pages"
+  }
+}

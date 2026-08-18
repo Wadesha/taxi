@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>轨迹与空间分布 · 分析</title>
+<meta name="description" content="轨迹分析方法：如何把 GPS 点序列还原成移动-驻停模式、速度画像与空间分布。结合北京、深圳、无锡真实数据示例。" />
+<link rel="stylesheet" href="../assets/css/style.css" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23db2777'/%3E%3Ctext x='16' y='22' font-size='18' text-anchor='middle' fill='white' font-family='Arial' font-weight='bold'%3E轨%3C/text%3E%3C/svg%3E" />
+</head>
+<body>
+
+<header class="site-header">
+  <div class="container">
+    <nav class="nav" aria-label="主导航">
+      <a class="brand" href="../index.html"><span class="brand-mark" aria-hidden="true"></span><span>轨迹数据分析</span></a>
+      <div class="nav-links">
+        <a href="../index.html">主页</a>
+        <a href="../guide/gps.html">基础概念</a>
+        <a href="../index.html#datasets">数据集</a>
+        <a href="./overview.html">分析</a>
+        <a href="../methodology/pipeline.html">方法</a>
+      </div>
+      <button class="theme-toggle" aria-label="切换主题">☾</button>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="container">
+
+    <div class="crumbs">
+      <a href="../index.html">主页</a><span class="sep">/</span>
+      <a href="./overview.html">分析</a><span class="sep">/</span>
+      <span>轨迹与空间分布</span>
+    </div>
+
+    <span class="section-eyebrow" style="color:var(--analysis);">分析 · 轨迹</span>
+    <h1>把点连成线，再从线里读故事</h1>
+    <p style="max-width:820px;">
+      轨迹分析最基础也最重要的一步，是把一组按时间排序的 GPS 点，还原成"<b>移动—驻停—再移动</b>"的真实过程。
+      这一步做好了，后面 OD、热点、拥堵分析才有了地基。下面用三城的真实数据，看三种"读法"。
+    </p>
+
+    <hr/>
+
+    <h2 id="segment">读法一：移动段 vs 驻停段</h2>
+    <p>
+      一辆出租车的一天，本质上是一段段"移动"和"驻停"的拼接。看北京 1 号车一整天的轨迹，
+      颜色从紫到黄代表从早到晚。下午的点在城区漂移（移动段），21:40 之后坐标几乎钉死在一处（驻停段）：
+    </p>
+    <figure class="figure">
+      <div class="frame"><img src="../assets/img/beijing-track-day.png" alt="北京出租车 1 号全天轨迹" /></div>
+      <figcaption><strong>真实数据</strong> · 北京 T-Drive 出租车 1 号 2008-02-02 全天轨迹。颜色 = 时间，晚 9 点后基本驻停。</figcaption>
+    </figure>
+
+    <div class="concept">
+      <span class="icon">🧭</span>
+      <div>
+        <strong>如何从算法上切分"移动"和"驻停"？</strong>
+        <p>常用办法是"<b>停留点检测（stay point detection）</b>": 如果一个点的速度/位移在一段连续时间窗口内都小于阈值，就标记为停留。
+        阈值通常取：速度 &lt; 1 km/h，半径 &lt; 100 米，持续时间 &gt; 5–10 分钟。切分后，每条轨迹变成一串"移动段—停留点"，
+        就能统计每辆车的<b>工作时长、驻停次数、平均段长</b>。</p>
+      </div>
+    </div>
+
+    <hr/>
+
+    <h2 id="shape">读法二：不同车的"轨迹性格"</h2>
+    <p>
+      把多辆车的一天轨迹并排看，能看出完全不同的"性格"：有的车只在市中心打转（短途高频），有的车直奔远郊再折返（长途少单）。
+      这种差异不是随机，而是运营策略不同：
+    </p>
+    <figure class="figure">
+      <div class="frame"><img src="../assets/img/beijing-multi-track.png" alt="北京三辆出租车轨迹对比" /></div>
+      <figcaption><strong>真实数据</strong> · 三辆北京出租车的轨迹形态：有的密集于城区，有的长途往返郊区，运营半径明显不同。</figcaption>
+    </figure>
+
+    <div class="why">
+      <span class="icon">💡</span>
+      <div>
+        <strong>可以算出来的"性格指标"：</strong>
+        每辆车都能算出<b>活动半径</b>（驻停点分布的 95% 半径）、<b>日均里程</b>、<b>移动段比例</b>。
+        用这些指标做聚类，就能把司机分成"守点型"、"扫街型"、"长途型"等模式。
+      </div>
+    </div>
+
+    <hr/>
+
+    <h2 id="space">读法三：空间分布——车都聚在哪？</h2>
+    <p>
+      单车看性格，千车叠加看城市结构。把无锡一个样本里的轨迹点全部铺到地图上，再加速度颜色，
+      就能看出城市主干道和"车爱走哪里"。注意右下角的统计摘要显示经纬度跨度极大——再次提醒我们这份数据的覆盖范围远超无锡：
+    </p>
+    <figure class="figure">
+      <div class="frame"><img src="../assets/img/wuxi-trajectory.png" alt="无锡轨迹点分布、速度、方向、加速度综合" /></div>
+      <figcaption><strong>真实数据</strong> · 无锡样本的轨迹点分布、速度分布、方向分布、每小时活动、加速度散点与统计摘要。方向直方图只显示 0 与 121 两个尖峰，速度在 80 km/h 处有明显尖峰。</figcaption>
+    </figure>
+
+    <div class="concept">
+      <span class="icon">🧭</span>
+      <div>
+        <strong>空间分布的常用画法：</strong>
+        <ul style="margin:.4em 0 0;">
+          <li><b>散点图</b>：把所有点叠加，直观看出路网骨架；</li>
+          <li><b>热力图 / hexbin</b>：把空间网格化，颜色表示每格点的数量，适合找聚集区；</li>
+          <li><b>核密度估计（KDE）</b>：更平滑的连续密度面，用于定位热点边界。</li>
+        </ul>
+      </div>
+    </div>
+
+    <hr/>
+
+    <h2 id="speed">读法四：速度画像——城市的"脉搏"</h2>
+    <p>
+      速度是轨迹里最容易被低估的字段。深圳数据直接提供了瞬时速度，把全部速度画成直方图，
+      你会看到一个<b>被压缩在 0 附近的巨大尖峰</b>——那是红灯、堵车、等客时无数辆车共同写下的"城市节奏"。
+    </p>
+    <figure class="figure">
+      <div class="frame"><img src="../assets/img/shenzhen-speed-dist.png" alt="深圳出租车瞬时速度分布" /></div>
+      <figcaption><strong>真实数据</strong> · 深圳 12:00 切片 40 万条采样的速度分布。约 42% 记录速度为 0，反映城市行驶时走走停停的真实状态。</figcaption>
+    </figure>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>速度区间</th><th>含义</th><th>可做的分析</th></tr></thead>
+        <tbody>
+          <tr><td>0 km/h</td><td>红灯、堵车、上客、驻车</td><td>拥堵热力图、上下客停留点</td></tr>
+          <tr><td>1–20 km/h</td><td>慢行（拥堵、窄路、找车位）</td><td>拥堵段识别、低效路网</td></tr>
+          <tr><td>20–60 km/h</td><td>市区正常行驶</td><td>平均速度分区比较</td></tr>
+          <tr><td>&gt;80 km/h</td><td>城市快速路 / 高速</td><td>干道使用率；也用于过滤异常值</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout note">
+      <span class="icon">📌</span>
+      <div>
+        <strong>速度分布的"双峰"提醒：</strong>城市交通速度极少是正态分布。
+        它通常是"0 处一堆 + 正常行驶一堆"的双峰。用"均值"概括速度会失真，
+        更好的做法是<b>分区间看比例</b>，或者按路段、按时段单独画分布。
+      </div>
+    </div>
+
+    <hr/>
+
+    <h2 id="summary">轨迹分析的通用流程</h2>
+    <ol class="steps">
+      <li><b>清洗</b><p>去重、按边界裁剪、剔除时间异常与速度异常值。</p></li>
+      <li><b>排序与分段</b><p>按车辆+时间排序；用速度/位移阈值把轨迹切成移动段和停留段。</p></li>
+      <li><b>计算单段特征</b><p>段长、段时长、平均速度、起终点、方向变化。</p></li>
+      <li><b>聚合</b><p>按小时/按区域/按车辆类型汇总，得到时空分布与统计画像。</p></li>
+      <li><b>可视化验证</b><p>用地图、直方图、热力图反复核对，确保模式不是清洗 artifact。</p></li>
+    </ol>
+
+    <div style="display:flex;gap:12px;flex-wrap:wrap;margin:30px 0;">
+      <a class="btn ghost" href="./overview.html">← 综合对比</a>
+      <a class="btn" href="./od.html">OD 出行矩阵 →</a>
+    </div>
+
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="container"><div class="row">
+    <div>出租车轨迹数据分析 · 从 GPS 到分析</div>
+    <div>数据归各自来源所有 · 代码 MIT</div>
+  </div></div>
+</footer>
+
+<button class="to-top" aria-label="返回顶部">↑</button>
+<script src="../assets/js/main.js"></script>
+</body>
+</html>

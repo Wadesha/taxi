@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>出租车轨迹数据 · 从零到分析</title>
+<meta name="description" content="一份从 GPS 定位原理讲到出租车轨迹分析的完整学习项目：北京、深圳、无锡三城真实数据集 + 分析方法 + 可复现管线。" />
+<link rel="stylesheet" href="assets/css/style.css" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%232563eb'/%3E%3Ctext x='16' y='22' font-size='18' text-anchor='middle' fill='white' font-family='Arial' font-weight='bold'%3E%E2%9A%99%3C/text%3E%3C/svg%3E" />
+</head>
+<body>
+
+<header class="site-header">
+  <div class="container">
+    <nav class="nav" aria-label="主导航">
+      <a class="brand" href="index.html"><span class="brand-mark" aria-hidden="true"></span><span>轨迹数据分析</span></a>
+      <div class="nav-links">
+        <a href="index.html">主页</a>
+        <a href="guide/gps.html">基础概念</a>
+        <a href="#datasets">数据集</a>
+        <a href="analysis/overview.html">分析</a>
+        <a href="methodology/pipeline.html">方法</a>
+      </div>
+      <button class="theme-toggle" aria-label="切换主题">☾</button>
+    </nav>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="container">
+    <span class="section-eyebrow" style="color:var(--guide);">Learning Project · Trajectory Mining</span>
+    <h1>出租车轨迹数据<br/>从 GPS 到分析</h1>
+    <p class="lede">
+      这不是一份数字介绍，而是一条完整的<b>学习路径</b>：
+      先搞清楚 GPS 是怎么定位的、轨迹数据里的每个字段是什么意思；
+      再亲手打开北京、深圳、无锡三个真实数据集；然后用散点、热力图、OD 矩阵等方法
+      回答"车在哪、往哪去、什么时候堵"这类问题；最后把整个过程用 Python 脚本复现。
+    </p>
+    <div class="meta">
+      <span class="tag guide">📖 基础概念</span>
+      <span class="tag beijing">北京 2008</span>
+      <span class="tag shenzhen">深圳 2014</span>
+      <span class="tag wuxi">无锡 2020</span>
+      <span class="tag analysis">🔬 4 种分析方法</span>
+      <span class="tag method">🛠 可复现管线</span>
+    </div>
+  </div>
+</section>
+
+<main>
+  <div class="container">
+
+    <!-- 数据流总览 -->
+    <section>
+      <h2>这个项目在做什么？</h2>
+      <p>一句话：<strong>出租车顶上的 GPS 盒子每秒记下一条"我在哪、几点、开多快"</strong>，
+      日积月累就是海量轨迹；本项目把三座城市、三个年代的这类数据拿来做可视化与分析。
+      下图是整个数据流，也是本项目的骨架——每一格都对应一个页面：</p>
+
+      <div class="diagram">
+        <svg viewBox="0 0 960 190" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="数据流图">
+          <!-- 第 1 层：源头 -->
+          <rect x="20" y="20" width="150" height="64" rx="10" fill="#1e3a5f" stroke="#60a5fa" stroke-width="1.5"/>
+          <text x="95" y="46" text-anchor="middle" fill="#fff" font-size="14" font-weight="bold">① 卫星信号</text>
+          <text x="95" y="66" text-anchor="middle" fill="#bcd2f0" font-size="11">GPS 定位 · WGS-84</text>
+          <text x="95" y="130" text-anchor="middle" fill="#8794a6" font-size="11">→ 见「基础概念」</text>
+
+          <line x1="170" y1="52" x2="210" y2="52" stroke="#60a5fa" stroke-width="2" marker-end="url(#arr)"/>
+
+          <rect x="212" y="20" width="150" height="64" rx="10" fill="#1e3a5f" stroke="#60a5fa" stroke-width="1.5"/>
+          <text x="287" y="46" text-anchor="middle" fill="#fff" font-size="14" font-weight="bold">② 轨迹文件</text>
+          <text x="287" y="66" text-anchor="middle" fill="#bcd2f0" font-size="11">csv / txt · 每行一个点</text>
+          <text x="287" y="130" text-anchor="middle" fill="#8794a6" font-size="11">→ 见「数据集」</text>
+
+          <line x1="362" y1="52" x2="402" y2="52" stroke="#60a5fa" stroke-width="2" marker-end="url(#arr)"/>
+
+          <rect x="404" y="20" width="150" height="64" rx="10" fill="#26321f" stroke="#4ade80" stroke-width="1.5"/>
+          <text x="479" y="46" text-anchor="middle" fill="#fff" font-size="14" font-weight="bold">③ 清洗</text>
+          <text x="479" y="66" text-anchor="middle" fill="#bbd8b4" font-size="11">去重 / 滤波 / 边界</text>
+          <text x="479" y="130" text-anchor="middle" fill="#8794a6" font-size="11">→ 见「方法」</text>
+
+          <line x1="554" y1="52" x2="594" y2="52" stroke="#4ade80" stroke-width="2" marker-end="url(#arr)"/>
+
+          <rect x="596" y="20" width="150" height="64" rx="10" fill="#26321f" stroke="#4ade80" stroke-width="1.5"/>
+          <text x="671" y="46" text-anchor="middle" fill="#fff" font-size="14" font-weight="bold">④ 分析</text>
+          <text x="671" y="66" text-anchor="middle" fill="#bbd8b4" font-size="11">热点 / OD / 速度</text>
+          <text x="671" y="130" text-anchor="middle" fill="#8794a6" font-size="11">→ 见「分析」</text>
+
+          <line x1="746" y1="52" x2="786" y2="52" stroke="#4ade80" stroke-width="2" marker-end="url(#arr)"/>
+
+          <rect x="788" y="20" width="152" height="64" rx="10" fill="#2d1a2f" stroke="#f472b6" stroke-width="1.5"/>
+          <text x="864" y="46" text-anchor="middle" fill="#fff" font-size="14" font-weight="bold">⑤ 可视化</text>
+          <text x="864" y="66" text-anchor="middle" fill="#e5b8cf" font-size="11">12 面板图 / 热力图</text>
+          <text x="864" y="130" text-anchor="middle" fill="#8794a6" font-size="11">→ 贯穿全站</text>
+
+          <defs>
+            <marker id="arr" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+              <path d="M0,0 L8,3 L0,6 Z" fill="#60a5fa"/>
+            </marker>
+          </defs>
+        </svg>
+        <div class="caption">数据流：卫星定位 → 记录成文件 → 清洗 → 分析 → 可视化。每一步在本站都有对应页面解释「是什么、为什么、怎么做」。</div>
+      </div>
+    </section>
+
+    <hr/>
+
+    <!-- 学习路径 -->
+    <section>
+      <h2>建议学习路径（4 步）</h2>
+      <p>按顺序读，每一步都建立在前一步之上；已有基础的可以直接跳到你感兴趣的环节。</p>
+      <div class="learning-path">
+        <div class="path-node">
+          <div class="pn-num">1</div>
+          <div>
+            <h3>基础概念：GPS 是怎么工作的？</h3>
+            <p>经纬度怎么读、WGS-84 是什么、GPS 为什么会有误差、"轨迹"到底是什么。
+            不懂这些，后面看到 lon/lat 只会当成两个数字。</p>
+            <a class="link" href="guide/gps.html">去读「GPS 与经纬度」→</a>
+            &nbsp;·&nbsp;
+            <a class="link" href="guide/trajectory.html">「轨迹数据与字段」→</a>
+          </div>
+        </div>
+        <div class="path-node">
+          <div class="pn-num">2</div>
+          <div>
+            <h3>认识三个数据集</h3>
+            <p>北京（2008，微软研究院）、深圳（2014，单日海量）、无锡（2020，带 9 维惯性信号）。
+            每个数据集都有自己的"出身"和"脾气"，先摸清字段再谈分析。</p>
+            <a class="link" href="datasets/beijing.html">北京 →</a>
+            &nbsp;·&nbsp;
+            <a class="link" href="datasets/shenzhen.html">深圳 →</a>
+            &nbsp;·&nbsp;
+            <a class="link" href="datasets/wuxi.html">无锡 →</a>
+          </div>
+        </div>
+        <div class="path-node">
+          <div class="pn-num">3</div>
+          <div>
+            <h3>分析方法：从一张散点图到一张 OD 矩阵</h3>
+            <p>轨迹分析有四类经典问题：<b>在哪</b>（热点）、<b>从哪到哪</b>（OD）、
+            <b>开多快</b>（速度画像）、<b>怎么走</b>（轨迹形态）。每页讲清方法原理 + 结果解读。</p>
+            <a class="link" href="analysis/overview.html">综合对比 →</a>
+            &nbsp;·&nbsp;
+            <a class="link" href="analysis/trajectory.html">轨迹与空间 →</a>
+            &nbsp;·&nbsp;
+            <a class="link" href="analysis/od.html">OD 出行矩阵 →</a>
+            &nbsp;·&nbsp;
+            <a class="link" href="analysis/hotspot.html">热点识别 →</a>
+          </div>
+        </div>
+        <div class="path-node">
+          <div class="pn-num">4</div>
+          <div>
+            <h3>复现与部署：把整个流程跑起来</h3>
+            <p>从 RAR 解压、pandas 解析、matplotlib 画图，到把这套静态站部署到 GitHub Pages。
+            所有脚本都在仓库里，改改路径就能跑。</p>
+            <a class="link" href="methodology/pipeline.html">数据处理管线 →</a>
+            &nbsp;·&nbsp;
+            <a class="link" href="methodology/deploy.html">部署到 GitHub Pages →</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <hr/>
+
+    <!-- 数据集速览 -->
+    <section>
+      <h2>三个数据集，三个时代</h2>
+      <p>三座城市、三个年份、三种侧重。它们不重叠，正好互补：</p>
+      <div class="grid grid-3">
+        <a class="card-link" href="datasets/beijing.html">
+          <div class="card beijing">
+            <div class="accent-bar"></div>
+            <h3>北京 · T-Drive 2008</h3>
+            <p>微软研究院发布的经典学术数据集。<b>车多</b>（一万多辆）、覆盖一周，
+            是轨迹挖掘领域的"标准考题"，几乎所有经典算法都在这上面跑过。</p>
+            <span class="arrow">了解北京数据 →</span>
+          </div>
+        </a>
+        <a class="card-link" href="datasets/shenzhen.html">
+          <div class="card shenzhen">
+            <div class="accent-bar"></div>
+            <h3>深圳 · 2014</h3>
+            <p>单日 24 小时、约 4700 万条记录的"巨无霸"。多了一个关键字段
+            <code>passenger</code>——能区分<b>空车巡游</b>和<b>载客运营</b>，
+            这是北京数据没有的。</p>
+            <span class="arrow">了解深圳数据 →</span>
+          </div>
+        </a>
+        <a class="card-link" href="datasets/wuxi.html">
+          <div class="card wuxi">
+            <div class="accent-bar"></div>
+            <h3>无锡 · 2020</h3>
+            <p>三城里唯一带<b>惯性传感器信号</b>的数据：方向、速度、三轴加速度、
+            横摆角速度。能分析"这辆车开得稳不稳、有没有急加速"，是行为研究的富矿。</p>
+            <span class="arrow">了解无锡数据 →</span>
+          </div>
+        </a>
+        <a class="card-link" href="datasets/simulation.html">
+          <div class="card guide">
+            <div class="accent-bar"></div>
+            <h3>模拟数据集图鉴</h3>
+            <p>12 个小型模拟数据集，把这类轨迹数据<b>所有可能出问题的情况</b>逐一演示：
+            缺失、越界、常量传感器、稀疏、混合分隔符、时间戳混乱…… 接新数据前的体检清单。</p>
+            <span class="arrow">看图鉴 →</span>
+          </div>
+        </a>
+      </div>
+    </section>
+
+    <hr/>
+
+    <!-- 分析体系 -->
+    <section>
+      <h2>分析体系一览</h2>
+      <p>一个完整的轨迹分析应该覆盖"空间-时间-行为"三个维度。下表左侧是分析任务，
+      右侧是本站对应页面；<span class="tag" style="border-color:var(--guide);color:var(--guide);">模拟</span> 标记表示该分析尚未用真实全量数据完成，先用演示数据说明方法。</p>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>分析任务</th><th>要回答的问题</th><th>主要方法</th><th>状态</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><a href="analysis/trajectory.html">轨迹形态与空间分布</a></td><td>车开过哪些路？覆盖了城市的哪些区域？</td><td>轨迹线图、散点、hexbin 热力图</td><td><span class="tag method">真实数据</span></td></tr>
+            <tr><td><a href="analysis/hotspot.html">热点区域识别</a></td><td>哪里是热门上客/下客点？</td><td>密度聚类（DBSCAN）、核密度估计</td><td><span class="tag guide">模拟演示</span></td></tr>
+            <tr><td><a href="analysis/od.html">OD 出行矩阵</a></td><td>人们主要从哪个区去哪个区？</td><td>起讫点提取、矩阵热力图</td><td><span class="tag guide">模拟演示</span></td></tr>
+            <tr><td><a href="analysis/trajectory.html#speed">速度画像</a></td><td>车速分布长什么样？哪些时段堵？</td><td>速度直方图、分时段统计</td><td><span class="tag method">真实数据</span></td></tr>
+            <tr><td><a href="analysis/overview.html">跨城综合对比</a></td><td>三座城市的数据/行为有何差异？</td><td>多图并置、参数对照表</td><td><span class="tag method">真实数据</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <hr/>
+
+    <!-- 仓库结构 -->
+    <section>
+      <h2>仓库结构（怎么组织）</h2>
+      <p>项目文件夹按"概念 → 数据 → 分析 → 方法"四层组织，原始大数据单独收在
+      <code>raw/</code>（不会进入 git），网站只引用样本和图表：</p>
+      <pre><code>taxi/
+├── index.html                # 本页：总览 + 学习路径
+├── guide/                    # 📖 基础概念（GPS、轨迹格式）
+├── datasets/                 # 🗂️ 三个数据集详情 + simulation.html（模拟图鉴）
+├── analysis/                 # 🔬 分析方法与结果（含模拟演示）
+├── methodology/              # 🛠️ 数据管线 + 部署指南
+├── assets/
+│   ├── css/ style.css
+│   ├── js/   main.js
+│   └── img/  分析图（真实+模拟）
+├── data/
+│   ├── 每城 50 行样本 + summary.json
+│   └── sim/  12 个模拟数据集 CSV + manifest.json
+├── scripts/                  # Python 脚本（可复现）
+├── raw/                      # ⚠️ 原始大数据（已迁归档仓库，git 忽略）
+└── docs/                     # 数据说明文档</code></pre>
+    </section>
+
+    <hr/>
+
+    <section>
+      <h2>快速开始</h2>
+      <div class="grid grid-3">
+        <a class="card-link" href="guide/gps.html">
+          <div class="card guide"><div class="accent-bar"></div><h3>零基础？</h3>
+          <p>从「GPS 与经纬度」开始，10 分钟建立坐标直觉。</p><span class="arrow">开始 →</span></div>
+        </a>
+        <a class="card-link" href="datasets/beijing.html">
+          <div class="card beijing"><div class="accent-bar"></div><h3>想看数据长什么样？</h3>
+          <p>打开任一数据集页，字段表 + 真实样本 + 分析图。</p><span class="arrow">看数据 →</span></div>
+        </a>
+        <a class="card-link" href="methodology/pipeline.html">
+          <div class="card method"><div class="accent-bar"></div><h3>想自己跑一遍？</h3>
+          <p>跟着「数据管线」的脚本，从解压到出图。</p><span class="arrow">复现 →</span></div>
+        </a>
+      </div>
+    </section>
+
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="container"><div class="row">
+    <div>出租车轨迹数据分析 · 从 GPS 到分析</div>
+    <div>数据归各自来源所有 · 代码 MIT</div>
+  </div></div>
+</footer>
+
+<button class="to-top" aria-label="返回顶部">↑</button>
+<script src="assets/js/main.js"></script>
+</body>
+</html>

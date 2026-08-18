@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>轨迹数据与字段 · 基础概念</title>
+<meta name="description" content="轨迹数据是什么：点序列与时间轴、每个字段的含义与用途、采样间隔的取舍、GPS 漂移与数据质量。" />
+<link rel="stylesheet" href="../assets/css/style.css" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%237c3aed'/%3E%3Ctext x='16' y='22' font-size='18' text-anchor='middle' fill='white' font-family='Arial' font-weight='bold'%3E%E2%9A%99%3C/text%3E%3C/svg%3E" />
+</head>
+<body>
+
+<header class="site-header">
+  <div class="container">
+    <nav class="nav" aria-label="主导航">
+      <a class="brand" href="../index.html"><span class="brand-mark" aria-hidden="true"></span><span>轨迹数据分析</span></a>
+      <div class="nav-links">
+        <a href="../index.html">主页</a>
+        <a href="./gps.html">基础概念</a>
+        <a href="../index.html#datasets">数据集</a>
+        <a href="../analysis/overview.html">分析</a>
+        <a href="../methodology/pipeline.html">方法</a>
+      </div>
+      <button class="theme-toggle" aria-label="切换主题">☾</button>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="container-narrow">
+
+    <div class="crumbs">
+      <a href="../index.html">主页</a><span class="sep">/</span>
+      <a href="../index.html#learning">基础概念</a><span class="sep">/</span>
+      <span>轨迹数据与字段</span>
+    </div>
+
+    <span class="section-eyebrow" style="color:var(--guide);">基础概念 · 第 2 课</span>
+    <h1>轨迹数据：一个移动的点，被按时记录</h1>
+    <p>
+      上一课解决了"一个坐标是什么"。这一课解决"一整条轨迹是什么"。
+      一句话：<strong>轨迹 = 一辆车在不同时刻的位置点，按时间排成一行一行</strong>。
+      每一行叫一条<b>记录</b>，包含"谁、几点、在哪"，有的还带"开多快、载没载客、加速度多少"。
+    </p>
+
+    <hr/>
+
+    <h2 id="what">轨迹的最小单元：一条记录</h2>
+    <p>从北京数据集里随便抽一行，真实数据长这样：</p>
+    <pre><code>1,2008-02-02 15:36:08,116.51172,39.92123</code></pre>
+    <p>用逗号拆开，四个字段依次是：</p>
+    <ul>
+      <li><strong>1</strong> — 出租车 ID：这辆车是谁。</li>
+      <li><strong>2008-02-02 15:36:08</strong> — 时间戳：什么时候记录的。</li>
+      <li><strong>116.51172</strong> — 经度：东西方向在哪。</li>
+      <li><strong>39.92123</strong> — 纬度：南北方向在哪。</li>
+    </ul>
+    <p>
+      把同一辆车的记录按时间连起来，就是一条轨迹。下图示意"点 → 线"的过程：
+    </p>
+
+    <div class="diagram">
+      <svg viewBox="0 0 640 240" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="轨迹采样时间线示意">
+        <!-- 时间轴 -->
+        <line x1="60" y1="170" x2="600" y2="170" stroke="#cbd2d9" stroke-width="2"/>
+        <text x="52" y="195" fill="#7b8794" font-size="11">15:00</text>
+        <text x="575" y="195" fill="#7b8794" font-size="11">16:00</text>
+        <!-- 记录点 -->
+        <g font-size="11">
+          <circle cx="100" cy="170" r="6" fill="#2563eb"/><text x="100" y="150" text-anchor="middle" fill="#2563eb">15:36:08</text>
+          <circle cx="180" cy="170" r="6" fill="#2563eb"/><text x="180" y="150" text-anchor="middle" fill="#2563eb">15:46:08</text>
+          <circle cx="260" cy="170" r="6" fill="#2563eb"/><text x="260" y="150" text-anchor="middle" fill="#2563eb">15:56:08</text>
+          <circle cx="360" cy="170" r="6" fill="#2563eb"/><text x="360" y="150" text-anchor="middle" fill="#2563eb">16:06:08</text>
+          <circle cx="470" cy="170" r="6" fill="#2563eb"/><text x="470" y="150" text-anchor="middle" fill="#2563eb">16:16:08</text>
+          <circle cx="560" cy="170" r="6" fill="#2563eb"/><text x="560" y="150" text-anchor="middle" fill="#2563eb">16:26:08</text>
+        </g>
+        <!-- 间隙标注 -->
+        <line x1="220" y1="185" x2="380" y2="185" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="3 3"/>
+        <text x="300" y="215" text-anchor="middle" fill="#f59e0b" font-size="11">两条记录之间间隔 10 分钟 = 采样间隔</text>
+      </svg>
+      <div class="caption">采样间隔是轨迹数据的"心跳"：间隔越小，轨迹越精细，但数据量越大。</div>
+    </div>
+
+    <hr/>
+
+    <h2 id="fields">常见字段逐一拆解</h2>
+    <p>
+      三个数据集字段不同，但万变不离其宗。下面把可能出现过的字段都讲一遍——
+      <b>每个字段都不是白给的，它对应一个能回答的问题</b>：
+    </p>
+
+    <ul class="field-list">
+      <li>
+        <span class="name">taxi_id / id</span>
+        <span class="desc">车辆唯一标识。<small>作用：把"一堆点"还原成"一辆车的轨迹"。没有它，所有点混在一起只是噪音。</small></span>
+        <span class="example">1 / 0086627503166932</span>
+      </li>
+      <li>
+        <span class="name">timestamp</span>
+        <span class="desc">记录时刻。<small>作用：给点排序、算速度、看早晚高峰。轨迹分析里时间与空间同等重要。</small></span>
+        <span class="example">2008-02-02 15:36:08</span>
+      </li>
+      <li>
+        <span class="name">longitude / lon</span>
+        <span class="desc">经度（WGS-84 小数度）。<small>作用：东西方向坐标，配合纬度确定空间位置。</small></span>
+        <span class="example">116.51172</span>
+      </li>
+      <li>
+        <span class="name">latitude / lat</span>
+        <span class="desc">纬度（WGS-84 小数度）。<small>作用：南北方向坐标。</small></span>
+        <span class="example">39.92123</span>
+      </li>
+      <li>
+        <span class="name">speed</span>
+        <span class="desc">瞬时速度（km/h）。<small>作用：判断堵不堵、是否高速行驶。注意它来自 GPS 测速，不是车辆码表。</small></span>
+        <span class="example">19 / 80</span>
+      </li>
+      <li>
+        <span class="name">passenger</span>
+        <span class="desc">载客状态（0=空车，1=载客）。<small>作用：区分"空车巡游找客"和"载客运营"——这是深圳数据独有的宝贝。</small></span>
+        <span class="example">0 / 1</span>
+      </li>
+      <li>
+        <span class="name">方向</span>
+        <span class="desc">航向角（0-360°，正北为 0°）。<small>作用：判断行驶方向、是否掉头。90°=正东，180°=正南。</small></span>
+        <span class="example">121</span>
+      </li>
+      <li>
+        <span class="name">纵向/横向/垂直加速度</span>
+        <span class="desc">三个方向的加速度（cm/s²）。<small>作用：判断急加速/急刹车/颠簸。是驾驶行为分析的原料。</small></span>
+        <span class="example">1202 / 315 / 120</span>
+      </li>
+      <li>
+        <span class="name">横摆角速度</span>
+        <span class="desc">绕垂直轴旋转的角速度（deg/s）。<small>作用：转弯有多急。配合速度可识别弯道超速。</small></span>
+        <span class="example">343</span>
+      </li>
+    </ul>
+
+    <div class="concept">
+      <span class="icon">🧭</span>
+      <div>
+        <strong>字段越少 → 能做的问题越基础；字段越多 → 能做的分析越深</strong>
+        <p>北京只有"谁/几点/在哪"4 个字段，适合做空间分布、轨迹聚类；
+        深圳加了速度和载客状态，能做运营效率分析；
+        无锡的 9 维信号则足以支撑驾驶行为识别。</p>
+      </div>
+    </div>
+
+    <hr/>
+
+    <h2 id="interval">采样间隔：精细 vs 成本的权衡</h2>
+    <p>三个数据集的采样间隔差别很大，这不是巧合，而是当时技术成本的体现：</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>数据集</th><th>采样间隔</th><th>意味着什么</th></tr></thead>
+        <tbody>
+          <tr><td>北京 2008</td><td>~10 分钟</td><td>车从东城开到西城之间只有 1-2 个点，轨迹是"粗线条"</td></tr>
+          <tr><td>深圳 2014</td><td>~90 秒</td><td>一个路口等红灯能记 1-2 个点，能分辨大部分街道走向</td></tr>
+          <tr><td>无锡 2020</td><td>~1 秒</td><td>秒级采样 + 惯性信号 = 能还原加减速的每一帧，像"行车记录仪"</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="why">
+      <span class="icon">💡</span>
+      <div>
+        <strong>为什么不是越密越好？</strong>
+        采样越密，GPS 盒子功耗越大、存储与上传成本越高、无用数据（静止时的重复点）也越多。
+        2008 年一辆车一天只有几百个点；2020 年秒级数据一天上万个点。
+        选什么间隔，取决于<b>你要分析什么</b>：看通勤格局，10 分钟足够；看急刹车，必须秒级。
+      </div>
+    </div>
+
+    <hr/>
+
+    <h2 id="quality">数据质量：真实数据的"瑕疵"与对策</h2>
+    <p>真实数据不是教科书里的完美表格。项目里三个数据集都暴露了同样几类问题，处理它们是分析的第一步：</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>问题</th><th>表现</th><th>常见原因</th><th>处理方式</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>重复记录</td>
+            <td>同一时间同一位置出现两次</td>
+            <td>GPS 抖动 / 设备重发</td>
+            <td>按 (时间, 坐标) 去重</td>
+          </tr>
+          <tr>
+            <td>静止点堆积</td>
+            <td>长时间坐标几乎不变</td>
+            <td>等客、停车、交班</td>
+            <td>识别停留点（stay point）单独分析</td>
+          </tr>
+          <tr>
+            <td>坐标越界</td>
+            <td>点跑到城市外甚至别省</td>
+            <td>设备故障 / 数据混入</td>
+            <td>按城市经纬度范围过滤</td>
+          </tr>
+          <tr>
+            <td>字段缺失/错位</td>
+            <td>一行只有部分字段</td>
+            <td>导出格式问题</td>
+            <td>丢弃或补全（见无锡 README 日期不一致）</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout note">
+      <span class="icon">📌</span>
+      <div>
+        <strong>本项目的真实案例：</strong>北京 1 号车从 21:40 起坐标几乎不再变化
+        （116.6916, 39.8517 附近），直到凌晨——这就是典型的<b>静止点</b>；
+        无锡数据里出现 112.44°E / 34.82°N 的坐标（远在河南），明显是<b>越界脏数据</b>。
+        这些都不是"错误"，而是真实世界的痕迹，处理它们本身就是分析能力。
+        <br/><br/>
+        👉 想看每一种瑕疵<b>具体长什么样、怎么检测</b>，见
+        <a href="../datasets/simulation.html">《模拟数据集图鉴》</a>——
+        那里用 12 个小型模拟数据集，把这类数据所有可能出问题的情况逐一演示了一遍。
+      </div>
+    </div>
+
+    <hr/>
+
+    <h2 id="quality-dims">数据质量的四个维度（评估任何轨迹数据集的模板）</h2>
+    <p>
+      判断一份轨迹数据"能不能用、怎么用"，可以套一个通用的四维框架。这个框架不只适用于出租车数据，
+      任何时空序列数据都能用它来体检：
+    </p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>维度</th><th>问的问题</th><th>在轨迹数据上的体现</th><th>本项目实例</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><strong>完整性<br/>Completeness</strong></td>
+            <td>该有的字段/记录有没有缺失？</td>
+            <td>字段是否齐全；是否存在大段时间空白</td>
+            <td>无锡有 9 维信号但行驶段 IMU 是常量（字段有、内容空）；深圳缺失方向角</td>
+          </tr>
+          <tr>
+            <td><strong>准确性<br/>Accuracy</strong></td>
+            <td>坐标/数值是否贴近真实？</td>
+            <td>越界点、漂移、常量占位、假速度</td>
+            <td>无锡 11.7% 跨省份越界；无锡行驶段 IMU 恒为 1202/315/120/343</td>
+          </tr>
+          <tr>
+            <td><strong>时效性<br/>Timeliness</strong></td>
+            <td>时间戳是否可信、一致？</td>
+            <td>时区混乱、日期格式不一、跨日截断</td>
+            <td>部分导出文件日期标 2020 但 README 写 2022；混合时间戳格式</td>
+          </tr>
+          <tr>
+            <td><strong>一致性<br/>Consistency</strong></td>
+            <td>同一概念是否用同一方式表达？</td>
+            <td>分隔符混用、单位不一、编码差异</td>
+            <td>无锡 CSV 首列后带制表符再逗号（混合分隔符）</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="why">
+      <span class="icon">🧭</span>
+      <div>
+        <strong>怎么用这个模板？</strong>
+        拿到任何一份新轨迹数据，先用这四问快速"体检"：缺字段吗（完整性）、有越界/常量吗（准确性）、
+        时间对得上吗（时效性）、格式统一吗（一致性）。哪一维不过关，就针对性清洗。
+        下一节的《模拟数据集图鉴》正是按这四个维度，把每种"不过关"的样子都造了一份样本给你对照。
+      </div>
+    </div>
+
+    <hr/>
+
+    <h2 id="summary">小结</h2>
+    <ul>
+      <li><strong>轨迹</strong> = 按时排序的位置点序列；一条记录 = 谁 + 几点 + 在哪（+ 更多）。</li>
+      <li><strong>采样间隔</strong>决定轨迹的"分辨率"，是技术成本的体现，不是随意选的。</li>
+      <li>每个字段对应一个可回答的问题——读数据时先问"这个字段能帮我回答什么"。</li>
+      <li>真实数据有重复、静止、越界、缺失四类通病，<strong>清洗是分析的第一步</strong>。</li>
+    </ul>
+
+    <div style="display:flex;gap:12px;flex-wrap:wrap;margin:30px 0;">
+      <a class="btn ghost" href="./gps.html">← 上一课：GPS 与经纬度</a>
+      <a class="btn" href="../datasets/beijing.html">下一站：认识北京数据 →</a>
+    </div>
+
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="container"><div class="row">
+    <div>出租车轨迹数据分析 · 从 GPS 到分析</div>
+    <div>数据归各自来源所有 · 代码 MIT</div>
+  </div></div>
+</footer>
+
+<button class="to-top" aria-label="返回顶部">↑</button>
+<script src="../assets/js/main.js"></script>
+</body>
+</html>

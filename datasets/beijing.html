@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>北京 T-Drive 2008 · 数据集</title>
+<meta name="description" content="北京 T-Drive 数据集详解：背景、字段、真实样本、单车全天轨迹、多车对比、12 面板分析图。" />
+<link rel="stylesheet" href="../assets/css/style.css" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23c0392b'/%3E%3Ctext x='16' y='22' font-size='18' text-anchor='middle' fill='white' font-family='Arial' font-weight='bold'%3E%E5%8C%97%3C/text%3E%3C/svg%3E" />
+</head>
+<body>
+
+<header class="site-header">
+  <div class="container">
+    <nav class="nav" aria-label="主导航">
+      <a class="brand" href="../index.html"><span class="brand-mark" aria-hidden="true"></span><span>轨迹数据分析</span></a>
+      <div class="nav-links">
+        <a href="../index.html">主页</a>
+        <a href="../guide/gps.html">基础概念</a>
+        <a href="../index.html#datasets">数据集</a>
+        <a href="../analysis/overview.html">分析</a>
+        <a href="../methodology/pipeline.html">方法</a>
+      </div>
+      <button class="theme-toggle" aria-label="切换主题">☾</button>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="container">
+
+    <div class="crumbs">
+      <a href="../index.html">主页</a><span class="sep">/</span>
+      <a href="../index.html#datasets">数据集</a><span class="sep">/</span>
+      <span>北京 T-Drive 2008</span>
+    </div>
+
+    <span class="section-eyebrow" style="color:var(--beijing);">数据集 · Beijing T-Drive 2008</span>
+    <h1>北京：经典中的经典</h1>
+    <p style="max-width:780px;">
+      2008 年，微软亚洲研究院想做<b>基于真实轨迹的交通研究</b>，于是采集了北京
+      <strong>10,357 辆出租车</strong>连续一周（2008-02-02 至 02-08）的 GPS 轨迹，命名为
+      <b>T-Drive</b>。它后来成了轨迹数据挖掘领域引用最多的<b>标准基准数据集</b>——
+      几乎所有经典论文（轨迹聚类、路线推荐、交通流量预测）都用它做过实验。
+      用今天的话说，这是轨迹分析圈的"ImageNet"。
+    </p>
+
+    <div class="grid grid-4">
+      <div class="stat-card"><div class="label">车辆数</div><div class="value">10,357</div><div class="hint">规模大 → 覆盖广</div></div>
+      <div class="stat-card"><div class="label">轨迹文件</div><div class="value">8,911</div><div class="hint">每辆车一个 .txt</div></div>
+      <div class="stat-card"><div class="label">采样间隔</div><div class="value">~10 分钟</div><div class="hint">2008 年技术成本所限</div></div>
+      <div class="stat-card"><div class="label">字段数</div><div class="value">4</div><div class="hint">谁 / 几点 / 在哪</div></div>
+    </div>
+
+    <hr/>
+
+    <h2 id="fields">字段：极简四件套</h2>
+    <p>北京数据没有表头，每行四个数字，逗号分隔。字段少，但"够用"——空间分布、轨迹聚类、OD 分析都靠它：</p>
+    <ul class="field-list">
+      <li><span class="name">taxi_id</span><span class="desc">出租车 ID，与文件名一致。<small>作用：把文件里的点连成一辆车的轨迹。</small></span><span class="example">1</span></li>
+      <li><span class="name">timestamp</span><span class="desc">本地时间戳。<small>作用：排序、算速度、分时段。</small></span><span class="example">2008-02-02 15:36:08</span></li>
+      <li><span class="name">longitude</span><span class="desc">经度 (WGS-84)。<small>范围约 116.4°-116.7°E。</small></span><span class="example">116.51172</span></li>
+      <li><span class="name">latitude</span><span class="desc">纬度 (WGS-84)。<small>范围约 39.8°-40.0°N。</small></span><span class="example">39.92123</span></li>
+    </ul>
+    <div class="callout note">
+      <span class="icon">📌</span>
+      <div>
+        <strong>缺了什么，意味着什么：</strong>没有速度、没有载客状态——所以北京数据
+        <b>做不了</b>"空车巡游分析"和"驾驶行为分析"；但正因为字段少、格式统一、规模大，
+        它是<b>做空间分析</b>最顺手的。选数据集 = 选你能回答的问题。
+      </div>
+    </div>
+
+    <hr/>
+
+    <h2 id="track">单车的一天：轨迹长什么样？</h2>
+    <p>
+      先看最基础的：一辆车（1 号）一天的轨迹。颜色代表当天时刻，从早到晚由紫变黄。
+      你能直观看到<b>两种状态</b>：
+    </p>
+    <ul>
+      <li><strong>移动段</strong>：下午在市中心一带穿行（红色箭头附近），点连成的线就是行驶路线；</li>
+      <li><strong>驻车段</strong>：21:40 之后坐标几乎钉在 (116.6916, 39.8516)，一动不动到凌晨——司机收车了。</li>
+    </ul>
+
+    <figure class="figure">
+      <div class="frame"><img src="../assets/img/beijing-track-day.png" alt="北京出租车 1 号一天轨迹，颜色代表时间" /></div>
+      <figcaption><strong>真实数据</strong> · 北京 T-Drive 出租车 1 号 2008-02-02 全天轨迹（481 个采样点，已去重）。点击放大。红色 = 市中心活动段，蓝色 = 夜间驻车段。</figcaption>
+    </figure>
+
+    <div class="why">
+      <span class="icon">💡</span>
+      <div>
+        <strong>这张图回答了一个真实问题：</strong>"一辆出租车一天都干了什么？"
+        答案：下午在市内拉活，晚上停在一个固定点不动。
+        把这种"移动-静止"的模式对一万辆车重复一遍，你就得到了城市的
+        <b>运营时空结构</b>——这正是分析的基础素材。
+      </div>
+    </div>
+
+    <hr/>
+
+    <h2 id="multi">不同的车，不同的"性格"</h2>
+    <p>三辆车的轨迹并排看（圈=当天第一个点，叉=最后一个点），"性格"差异立刻显现：</p>
+    <figure class="figure">
+      <div class="frame"><img src="../assets/img/beijing-multi-track.png" alt="三辆北京出租车轨迹对比" /></div>
+      <figcaption><strong>真实数据</strong> · 三辆出租车各自的轨迹形态：有的在城区密集穿行，有的直奔远郊又返回，运营半径完全不同。</figcaption>
+    </figure>
+    <div class="concept">
+      <span class="icon">🧭</span>
+      <div>
+        <strong>观察：轨迹形态 = 运营策略</strong>
+        <p>1 号车轨迹集中在市中心（短途高频）；50 号车从中心一路开到东郊（长途）——这反映了
+        不同司机不同的"找活"策略。分析上，可以把每辆车的<b>活动半径</b>、<b>平均速度</b>、
+        <b>行驶里程</b>算出来做聚类，区分"城区短线型"和"郊区长线型"司机。</p>
+      </div>
+    </div>
+
+    <hr/>
+
+    <h2 id="panels">12 面板综合图</h2>
+    <p>
+      单看一辆车只能看到个体。把 20 辆车的样本合起来画成 12 个子面板，
+      就能从<b>空间、时间、统计</b>三个维度回答"这个城市一天什么样"：
+    </p>
+    <figure class="figure">
+      <div class="frame"><img src="../assets/img/beijing-analysis.png" alt="北京出租车 12 面板综合分析图" /></div>
+      <figcaption><strong>真实数据</strong> · 12 面板图：①轨迹散点 ②单车轨迹 ③时间热力图（小时×星期） ④各车记录数 ⑤活动时长 ⑥⑦经纬度分布 ⑧每小时活动 ⑨二维密度 ⑩多车对比 ⑪每日活动 ⑫活动范围</figcaption>
+    </figure>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>面板</th><th>在看什么</th><th>你能得到的结论</th></tr></thead>
+        <tbody>
+          <tr><td>① 轨迹散点</td><td>所有点叠加的空间密度</td><td>轨迹集中在 116.45°-116.55°E / 39.90°-39.95°N，即 2008 年的市中心核心区</td></tr>
+          <tr><td>③ 时间热力图</td><td>星期 × 小时两个维度的活跃度</td><td>白天 8-19 时明显活跃，傍晚 17-19 时是高峰（通勤），深夜显著冷清</td></tr>
+          <tr><td>⑧ 每小时活动</td><td>一天 24 小时的记录数曲线</td><td>双峰结构：上午一个峰、傍晚一个峰，符合出租车需求规律</td></tr>
+          <tr><td>⑫ 活动范围</td><td>每辆车经度跨度 × 纬度跨度</td><td>大部分车活动范围小而集中，少数车跨度大（长途运营）</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <hr/>
+
+    <h2 id="sample">真实样本：1 号车前 51 条记录</h2>
+    <p>以下数据逐行来自仓库 <code>raw/beijing/.../T-Drive trajectory data sample/1.txt</code>，
+    完整文件有 588 行。注意观察 21:40 之后坐标几乎不变的驻车现象：</p>
+
+    <div class="table-wrap">
+      <table data-page-size="25">
+        <thead><tr><th>taxi_id</th><th>timestamp</th><th>longitude</th><th>latitude</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>2008-02-02 15:36:08</td><td>116.51172</td><td>39.92123</td></tr>
+          <tr><td>1</td><td>2008-02-02 15:46:08</td><td>116.51135</td><td>39.93883</td></tr>
+          <tr><td>1</td><td>2008-02-02 15:46:08</td><td>116.51135</td><td>39.93883</td></tr>
+          <tr><td>1</td><td>2008-02-02 15:56:08</td><td>116.51627</td><td>39.91034</td></tr>
+          <tr><td>1</td><td>2008-02-02 16:06:08</td><td>116.47186</td><td>39.91248</td></tr>
+          <tr><td>1</td><td>2008-02-02 16:16:08</td><td>116.47217</td><td>39.92498</td></tr>
+          <tr><td>1</td><td>2008-02-02 16:26:08</td><td>116.47179</td><td>39.90718</td></tr>
+          <tr><td>1</td><td>2008-02-02 16:36:08</td><td>116.45617</td><td>39.90531</td></tr>
+          <tr><td>1</td><td>2008-02-02 17:00:24</td><td>116.47191</td><td>39.90577</td></tr>
+          <tr><td>1</td><td>2008-02-02 17:10:24</td><td>116.50661</td><td>39.91450</td></tr>
+          <tr><td>1</td><td>2008-02-02 20:30:34</td><td>116.49625</td><td>39.91460</td></tr>
+          <tr><td>1</td><td>2008-02-02 20:40:33</td><td>116.50962</td><td>39.91071</td></tr>
+          <tr><td>1</td><td>2008-02-02 20:50:33</td><td>116.52231</td><td>39.91588</td></tr>
+          <tr><td>1</td><td>2008-02-02 20:50:33</td><td>116.52231</td><td>39.91588</td></tr>
+          <tr><td>1</td><td>2008-02-02 21:00:33</td><td>116.56444</td><td>39.91445</td></tr>
+          <tr><td>1</td><td>2008-02-02 21:10:33</td><td>116.59512</td><td>39.90798</td></tr>
+          <tr><td>1</td><td>2008-02-02 21:30:33</td><td>116.65522</td><td>39.86220</td></tr>
+          <tr><td>1</td><td>2008-02-02 21:40:33</td><td>116.69164</td><td>39.85165</td></tr>
+          <tr><td>1</td><td>2008-02-02 21:50:33</td><td>116.69167</td><td>39.85166</td></tr>
+          <tr><td>1</td><td>2008-02-02 22:10:32</td><td>116.69168</td><td>39.85168</td></tr>
+          <tr><td>1</td><td>2008-02-02 22:20:32</td><td>116.69168</td><td>39.85167</td></tr>
+          <tr><td>1</td><td>2008-02-02 22:30:32</td><td>116.69167</td><td>39.85169</td></tr>
+          <tr><td>1</td><td>2008-02-02 22:40:33</td><td>116.69167</td><td>39.85172</td></tr>
+          <tr><td>1</td><td>2008-02-02 22:50:33</td><td>116.69167</td><td>39.85174</td></tr>
+          <tr><td>1</td><td>2008-02-02 23:00:32</td><td>116.69167</td><td>39.85175</td></tr>
+          <tr><td>1</td><td>2008-02-02 23:10:32</td><td>116.69167</td><td>39.85176</td></tr>
+          <tr><td>1</td><td>2008-02-02 23:20:32</td><td>116.69172</td><td>39.85208</td></tr>
+          <tr><td>1</td><td>2008-02-02 23:20:32</td><td>116.69172</td><td>39.85208</td></tr>
+          <tr><td>1</td><td>2008-02-02 23:30:32</td><td>116.69172</td><td>39.85199</td></tr>
+          <tr><td>1</td><td>2008-02-02 23:40:32</td><td>116.69171</td><td>39.85196</td></tr>
+          <tr><td>1</td><td>2008-02-02 23:50:32</td><td>116.69171</td><td>39.85182</td></tr>
+          <tr><td>1</td><td>2008-02-03 00:00:32</td><td>116.69171</td><td>39.85184</td></tr>
+          <tr><td>1</td><td>2008-02-03 00:10:32</td><td>116.69170</td><td>39.85184</td></tr>
+          <tr><td>1</td><td>2008-02-03 00:20:32</td><td>116.69170</td><td>39.85184</td></tr>
+          <tr><td>1</td><td>2008-02-03 00:30:32</td><td>116.69168</td><td>39.85146</td></tr>
+          <tr><td>1</td><td>2008-02-03 00:40:32</td><td>116.69172</td><td>39.85165</td></tr>
+          <tr><td>1</td><td>2008-02-03 00:50:32</td><td>116.69176</td><td>39.85165</td></tr>
+          <tr><td>1</td><td>2008-02-03 01:00:32</td><td>116.69168</td><td>39.85163</td></tr>
+          <tr><td>1</td><td>2008-02-03 01:10:32</td><td>116.69166</td><td>39.85159</td></tr>
+          <tr><td>1</td><td>2008-02-03 01:40:31</td><td>116.69164</td><td>39.85186</td></tr>
+          <tr><td>1</td><td>2008-02-03 01:50:31</td><td>116.69167</td><td>39.85196</td></tr>
+          <tr><td>1</td><td>2008-02-03 02:00:32</td><td>116.69167</td><td>39.85167</td></tr>
+          <tr><td>1</td><td>2008-02-03 02:21:26</td><td>116.69176</td><td>39.85183</td></tr>
+          <tr><td>1</td><td>2008-02-03 02:30:31</td><td>116.69173</td><td>39.85174</td></tr>
+          <tr><td>1</td><td>2008-02-03 02:50:32</td><td>116.69172</td><td>39.85179</td></tr>
+          <tr><td>1</td><td>2008-02-03 03:00:32</td><td>116.69171</td><td>39.85176</td></tr>
+          <tr><td>1</td><td>2008-02-03 03:10:31</td><td>116.69170</td><td>39.85176</td></tr>
+          <tr><td>1</td><td>2008-02-03 03:20:31</td><td>116.69164</td><td>39.85165</td></tr>
+          <tr><td>1</td><td>2008-02-03 03:30:31</td><td>116.69155</td><td>39.85181</td></tr>
+          <tr><td>1</td><td>2008-02-03 03:40:31</td><td>116.69158</td><td>39.85180</td></tr>
+          <tr><td>1</td><td>2008-02-03 03:50:31</td><td>116.69156</td><td>39.85141</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout note">
+      <span class="icon">📌</span>
+      <div>
+        <strong>在这 51 行里你至少能发现 3 个真实数据现象：</strong>
+        ① 第 3 行和第 2 行重复（GPS 抖动）；② 15:46 → 20:30 之间有一条 3 小时的时间断裂
+        （数据缺失，车可能没信号）；③ 21:40 之后坐标几乎不动（驻车）。
+        处理这些现象，就是第 2 课讲的"清洗"。
+      </div>
+    </div>
+
+    <hr/>
+
+    <h2 id="next">这个数据集适合做什么？</h2>
+    <ul>
+      <li><strong>轨迹聚类</strong>：把一万辆车的轨迹聚类成典型路径（DBSCAN / TRACLUS）。</li>
+      <li><strong>城市热点识别</strong>：找高频上客区（但缺 passenger 字段，需用停留点推断）。</li>
+      <li><strong>OD 出行结构</strong>：用"移动段"的起终点估算区域间出行量。</li>
+      <li><strong>作为算法基准</strong>：新算法先在 T-Drive 上跑，再跟历史论文对比。</li>
+    </ul>
+
+    <div style="display:flex;gap:12px;flex-wrap:wrap;margin:30px 0;">
+      <a class="btn ghost" href="../guide/trajectory.html">← 回顾：轨迹数据与字段</a>
+      <a class="btn" href="./shenzhen.html">下一个数据集：深圳 →</a>
+    </div>
+
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="container"><div class="row">
+    <div>出租车轨迹数据分析 · 从 GPS 到分析</div>
+    <div>数据归各自来源所有 · 代码 MIT</div>
+  </div></div>
+</footer>
+
+<button class="to-top" aria-label="返回顶部">↑</button>
+<script src="../assets/js/main.js"></script>
+</body>
+</html>

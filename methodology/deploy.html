@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>GitHub Pages 部署 · 方法</title>
+<meta name="description" content="把出租车轨迹数据分析静态站部署到 GitHub Pages 的完整步骤：本地预览、仓库初始化、推送、启用 Pages。" />
+<link rel="stylesheet" href="../assets/css/style.css" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230284c7'/%3E%3Ctext x='16' y='22' font-size='18' text-anchor='middle' fill='white' font-family='Arial' font-weight='bold'%3E部%3C/text%3E%3C/svg%3E" />
+</head>
+<body>
+
+<header class="site-header">
+  <div class="container">
+    <nav class="nav" aria-label="主导航">
+      <a class="brand" href="../index.html"><span class="brand-mark" aria-hidden="true"></span><span>轨迹数据分析</span></a>
+      <div class="nav-links">
+        <a href="../index.html">主页</a>
+        <a href="../guide/gps.html">基础概念</a>
+        <a href="../index.html#datasets">数据集</a>
+        <a href="../analysis/overview.html">分析</a>
+        <a href="./pipeline.html">方法</a>
+      </div>
+      <button class="theme-toggle" aria-label="切换主题">☾</button>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="container">
+
+    <div class="crumbs">
+      <a href="../index.html">主页</a><span class="sep">/</span>
+      <a href="./pipeline.html">方法</a><span class="sep">/</span>
+      <span>GitHub Pages 部署</span>
+    </div>
+
+    <span class="section-eyebrow" style="color:var(--method);">方法 · 部署</span>
+    <h1>把静态站推到 GitHub Pages</h1>
+    <p style="max-width:800px;">
+      本项目是纯前端静态站（HTML/CSS/JS + PNG 图片），不需要后端、不需要构建。
+      部署到 GitHub Pages 只需"仓库初始化 → 推送到 main 分支 → 在仓库设置里启用 Pages"三步。
+    </p>
+
+    <hr/>
+
+    <h2 id="why-static">为什么是纯静态？</h2>
+    <ul>
+      <li><b>无构建步骤</b>：直接打开 HTML 即可看，不需要 npm install / 打包。</li>
+      <li><b>无敏感后端</b>：所有数据处理在本地 Python 脚本完成，不上传原始轨迹数据到服务器。</li>
+      <li><b>GitHub Pages 原生支持</b>：把文件推到仓库，Pages 自动 serving。</li>
+    </ul>
+
+    <hr/>
+
+    <h2 id="local">第一步：本地预览</h2>
+    <p>不要直接双击 HTML 文件打开——那样浏览器会用 <code>file://</code> 协议，导致相对路径和 JS 模块加载出错。
+    正确做法是起一个本地 HTTP 服务：</p>
+
+<pre><code># 在项目根目录执行
+python -m http.server 8767
+</code></pre>
+
+    <p>然后在浏览器打开 <code>http://localhost:8767</code>，就能看到完整站点。想换端口，把 <code>8767</code> 改成别的数字即可。</p>
+
+    <div class="callout note">
+      <span class="icon">📌</span>
+      <div>
+        <strong>注意：</strong>原始轨迹数据（<code>raw/</code> 目录）通常很大，已被 <code>.gitignore</code> 排除，不会进仓库。
+        网页里用到的图都放在 <code>assets/img/</code> 和数据摘要放在 <code>data/</code>，这才是应该被 Pages 服务的内容。
+      </div>
+    </div>
+
+    <hr/>
+
+    <h2 id="repo">第二步：初始化仓库并推送</h2>
+    <p>如果你已经拿到整理好的项目文件夹，按下面命令推送到 GitHub：</p>
+
+<pre><code># 进入项目根目录
+cd C:\Users\wade\Documents\taxi
+
+# 初始化仓库（如未初始化）
+git init
+
+# 添加并提交
+git add .
+git commit -m "init: structured taxi trajectory analysis site"
+
+# 关联远程仓库
+# 把 YOUR_USER/YOUR_REPO 换成你的 GitHub 用户名和仓库名
+git remote add origin https://github.com/YOUR_USER/YOUR_REPO.git
+
+# 推送 main 分支
+git branch -M main
+git push -u origin main
+</code></pre>
+
+    <p>推送前可以检查 <code>.gitignore</code> 是否正确排除了大文件：</p>
+<pre><code># 查看会被忽略的大目录
+raw/beijing/
+raw/shenzhen/
+raw/wuxi/
+*.rar
+*.zip
+</code></pre>
+
+    <hr/>
+
+    <h2 id="pages">第三步：启用 GitHub Pages</h2>
+    <ol class="steps">
+      <li><b>打开仓库设置</b><p>在 GitHub 仓库页面点击 <code>Settings</code>。</p></li>
+      <li><b>进入 Pages 设置</b><p>左侧菜单选择 <code>Pages</code>。</p></li>
+      <li><b>选择部署分支</b><p>Source 选择 <code>Deploy from a branch</code>，Branch 选 <code>main</code>，文件夹选 <code>/(root)</code>，然后 Save。</p></li>
+      <li><b>等待部署</b><p>GitHub 会在 <code>https://YOUR_USER.github.io/YOUR_REPO</code> 提供服务，通常几十秒到几分钟生效。</p></li>
+    </ol>
+
+    <div class="callout note">
+      <span class="icon">📌</span>
+      <div>
+        <strong>部署后如何更新？</strong> 每次修改 HTML/CSS/JS/图片后，执行 <code>git add . && git commit -m "xxx" && git push</code>，
+        GitHub Pages 会自动重新部署。
+      </div>
+    </div>
+
+    <hr/>
+
+    <h2 id="structure">部署前检查清单</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>检查项</th><th>应该看到</th></tr></thead>
+        <tbody>
+          <tr><td>首页路径</td><td><code>index.html</code> 在仓库根目录</td></tr>
+          <tr><td>相对路径</td><td>所有页面用 <code>./</code>、<code>../</code> 引用，不用绝对磁盘路径</td></tr>
+          <tr><td>图片存在</td><td><code>assets/img/</code> 下的 PNG 都正确生成并提交</td></tr>
+          <tr><td>无大文件</td><td><code>raw/</code> 目录未被提交（检查 <code>.gitignore</code>）</td></tr>
+          <tr><td>本地可访问</td><td><code>http://localhost:8767</code> 能正常浏览所有页面</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <hr/>
+
+    <h2 id="domain">可选：绑定自定义域名</h2>
+    <p>如果你有自己的域名，可以在仓库 <code>Settings → Pages → Custom domain</code> 里填写，
+    然后在 DNS 服务商添加一条 CNAME 记录指向 <code>YOUR_USER.github.io</code>。
+    首次绑定后，GitHub 会自动生成 HTTPS 证书，稍等几分钟即可生效。</p>
+
+    <div style="display:flex;gap:12px;flex-wrap:wrap;margin:30px 0;">
+      <a class="btn ghost" href="./pipeline.html">← 数据管线</a>
+      <a class="btn" href="../index.html">返回主页 →</a>
+    </div>
+
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="container"><div class="row">
+    <div>出租车轨迹数据分析 · 从 GPS 到分析</div>
+    <div>数据归各自来源所有 · 代码 MIT</div>
+  </div></div>
+</footer>
+
+<button class="to-top" aria-label="返回顶部">↑</button>
+<script src="../assets/js/main.js"></script>
+</body>
+</html>

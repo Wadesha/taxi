@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>模拟数据集图鉴 · 轨迹数据可能出现的全部情况</title>
+<meta name="description" content="用 12 个模拟数据集，逐一演示 GPS/出租车轨迹数据中可能出现的各种情况：缺失、越界、常量传感器、稀疏、混合分隔符等。" />
+<link rel="stylesheet" href="../assets/css/style.css" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%237c3aed'/%3E%3Ctext x='16' y='22' font-size='18' text-anchor='middle' fill='white' font-family='Arial' font-weight='bold'%3E%E2%9A%99%3C/text%3E%3C/svg%3E" />
+
+<style>
+.sim-grid{display:grid;grid-template-columns:1fr;gap:18px;margin-top:10px}
+.sim-card{border:1px solid var(--border);border-radius:14px;padding:18px 20px;background:var(--card)}
+.sim-card.ref{border-color:var(--guide);box-shadow:0 0 0 2px color-mix(in srgb,var(--guide) 25%,transparent)}
+.sim-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.sim-head h3{margin:0;font-size:1.05rem}
+.sim-card .desc{margin:10px 0 6px;color:var(--text)}
+.sim-card .impact{margin:6px 0;font-size:.92rem}
+.sim-card .detect{margin:6px 0 12px;font-size:.9rem;color:var(--text-soft)}
+.dl{font-size:.8rem;padding:4px 10px;border:1px solid var(--border);border-radius:8px;color:var(--accent);text-decoration:none}
+.sample{font-size:.78rem}
+.sample td,.sample th{white-space:nowrap;padding:3px 8px}
+.cap{font-size:.75rem;color:var(--text-soft);margin-top:6px}
+.miss{color:#ef4444;font-weight:bold}
+.chart-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin:14px 0}
+.chart-row figure{margin:0}
+.chart-row img{width:100%;border:1px solid var(--border);border-radius:10px}
+.chart-row figcaption{font-size:.78rem;color:var(--text-soft);text-align:center;margin-top:4px}
+.muted{color:var(--text-soft)}
+</style>
+</head>
+<body>
+<header class="site-header"><div class="container">
+  <nav class="nav" aria-label="主导航">
+    <a class="brand" href="../index.html"><span class="brand-mark" aria-hidden="true"></span><span>轨迹数据分析</span></a>
+    <div class="nav-links">
+      <a href="../index.html">主页</a>
+      <a href="../guide/gps.html">基础概念</a>
+      <a href="../index.html#datasets">数据集</a>
+      <a href="../analysis/overview.html">分析</a>
+      <a href="../methodology/pipeline.html">方法</a>
+    </div>
+    <button class="theme-toggle" aria-label="切换主题">☾</button>
+  </nav>
+</div></header>
+
+<main><div class="container-narrow">
+  <div class="crumbs">
+    <a href="../index.html">主页</a><span class="sep">/</span>
+    <a href="../index.html#datasets">数据集</a><span class="sep">/</span>
+    <span>模拟数据集图鉴</span>
+  </div>
+
+  <span class="section-eyebrow" style="color:var(--datasets);">数据集 · 模拟图鉴</span>
+  <h1>模拟数据集图鉴：这类数据可能出哪些问题</h1>
+  <p>
+    出租车/GPS 轨迹数据不是一种数据，而是一<strong>类</strong>数据——它们的字段、采样、质量千差万别。
+    你手里的北京、深圳、无锡，只是现实中三种"比较全面、质量尚可"的样本。
+    但当你去接新的数据源时，可能会遇到各种各样的情况：字段不全、坐标越界、传感器是占位常量、时间戳乱七八糟……
+  </p>
+  <p>
+    这一页用 <strong>12 个小型模拟数据集</strong>，把这类数据<strong>所有可能出问题的情况都造了一份样本</strong>，
+    逐一告诉你：它长什么样、为什么会出现、对分析有什么影响、怎么检测。把它当成一份"接数据前的体检清单"。
+  </p>
+
+  <div class="callout note">
+    <span class="icon">📍</span>
+    <div>
+      <strong>北京 / 深圳 / 无锡 = 真实且较全面的参照。</strong>
+      它们字段多、覆盖广，所以本项目拿它们当"正例"。图鉴里 <span class="sim-flag ref">真实参照</span> 那张卡
+      就是"理想状态"的样子；其余 <span class="sim-flag">模拟演示</span> 的卡片，则是把各种"毛病"单独拆出来给你看。
+      读懂这些毛病，再看真实数据时你就知道该先查哪里。
+    </div>
+  </div>
+
+  <hr/>
+  <h2>先看三张典型"毛病"的图</h2>
+  
+    <div class="chart-row">
+      <figure><img src="../assets/img/sim_outofrange.png" alt="越界坐标散点"/><figcaption>越界坐标：红叉点跑出合理范围</figcaption></figure>
+      <figure><img src="../assets/img/sim_constantsensor.png" alt="常量传感器"/><figcaption>常量传感器：IMU 恒为定值</figcaption></figure>
+      <figure><img src="../assets/img/sim_zerospeed.png" alt="零速分布"/><figcaption>零速主导：大量速度为 0</figcaption></figure>
+    </div>
+
+  <hr/>
+  <h2>12 张卡片：逐一过一遍</h2>
+  <p class="muted">每张卡：这是什么情况 → 对分析的影响 → 怎么检测 → 样本前 6 行 → 完整 CSV 下载。</p>
+  <div class="sim-grid">
+  
+    <article class="sim-card ref">
+      <div class="sim-head">
+        <h3>全面(真实参照) <span class="sim-flag ref">真实参照</span></h3>
+        <a class="dl" href="../data/sim/sim_comprehensive.csv" download>下载 CSV</a>
+      </div>
+      <p class="desc">字段完整：id/时间/经纬度/载客/速度/航向，无明显缺陷。北京 T-Drive + 深圳 2014 属此类。</p>
+      <p class="impact"><b>对分析的影响：</b>正常数据几乎零缺陷；用它对照下面各种'毛病'。</p>
+      <p class="detect"><b>怎么检测：</b>各字段非空、坐标落在城市范围内、时间戳单调递增 → 通过。</p>
+      <div class="table-wrap"><table class="sample"><thead><tr><th>taxi_id</th><th>timestamp</th><th>lon</th><th>lat</th><th>passenger</th><th>speed_kmh</th><th>heading</th></tr></thead>
+        <tbody><tr><td>京A000</td><td>2008-02-02 12:00:00</td><td>116.399983</td><td>39.900058</td><td>1</td><td>50.2</td><td>110.9</td></tr><tr><td>京A001</td><td>2008-02-02 12:01:00</td><td>116.400174</td><td>39.899763</td><td>0</td><td>20.9</td><td>268.6</td></tr><tr><td>京A002</td><td>2008-02-02 12:02:00</td><td>116.400029</td><td>39.900081</td><td>0</td><td>20.6</td><td>294.9</td></tr><tr><td>京A003</td><td>2008-02-02 12:03:00</td><td>116.399830</td><td>39.899329</td><td>1</td><td>12.8</td><td>117.9</td></tr><tr><td>京A004</td><td>2008-02-02 12:04:00</td><td>116.399213</td><td>39.899797</td><td>0</td><td>46.5</td><td>121.2</td></tr><tr><td>京A000</td><td>2008-02-02 12:05:00</td><td>116.399291</td><td>39.899437</td><td>0</td><td>16.3</td><td>120.6</td></tr></tbody></table></div>
+      <div class="cap">样本前 6 行（完整文件见上方下载）。</div>
+    </article>
+
+    <article class="sim-card">
+      <div class="sim-head">
+        <h3>仅位置(最小字段) <span class="sim-flag">模拟演示</span></h3>
+        <a class="dl" href="../data/sim/sim_minimal.csv" download>下载 CSV</a>
+      </div>
+      <p class="desc">只有 id/时间/经纬度，没有载客/速度/航向。北京 T-Drive 原始释放即如此。</p>
+      <p class="impact"><b>对分析的影响：</b>能做的分析受限：只能看轨迹形状，无法算 OD/速度/载客率。</p>
+      <p class="detect"><b>怎么检测：</b>只有 id/时间/经纬度，无法计算速度/载客；用之前先确认够不够。</p>
+      <div class="table-wrap"><table class="sample"><thead><tr><th>taxi_id</th><th>timestamp</th><th>lon</th><th>lat</th></tr></thead>
+        <tbody><tr><td>T0000</td><td>2008-02-02 12:00:00</td><td>116.400080</td><td>39.899620</td></tr><tr><td>T0001</td><td>2008-02-02 12:01:00</td><td>116.400274</td><td>39.899586</td></tr><tr><td>T0002</td><td>2008-02-02 12:02:00</td><td>116.400768</td><td>39.899713</td></tr><tr><td>T0003</td><td>2008-02-02 12:03:00</td><td>116.401198</td><td>39.899774</td></tr><tr><td>T0004</td><td>2008-02-02 12:04:00</td><td>116.401584</td><td>39.899753</td></tr><tr><td>T0005</td><td>2008-02-02 12:05:00</td><td>116.401105</td><td>39.900107</td></tr></tbody></table></div>
+      <div class="cap">样本前 6 行（完整文件见上方下载）。</div>
+    </article>
+
+    <article class="sim-card">
+      <div class="sim-head">
+        <h3>缺失坐标 <span class="sim-flag">模拟演示</span></h3>
+        <a class="dl" href="../data/sim/sim_missing.csv" download>下载 CSV</a>
+      </div>
+      <p class="desc">部分行经纬度为空（GPS 信号丢失/解析失败）。</p>
+      <p class="impact"><b>对分析的影响：</b>缺失点会让轨迹'断线'，需插值或丢弃该段。占比越高越难修复。</p>
+      <p class="detect"><b>怎么检测：</b>筛选 lon/lat 为空的行；缺失率 = 空行数 / 总行数。</p>
+      <div class="table-wrap"><table class="sample"><thead><tr><th>taxi_id</th><th>timestamp</th><th>lon</th><th>lat</th><th>passenger</th><th>speed_kmh</th></tr></thead>
+        <tbody><tr><td>S000</td><td>2014-10-22 12:00:00</td><td>114.060667</td><td>22.539408</td><td>0</td><td>10.6</td></tr><tr><td>S001</td><td>2014-10-22 12:01:00</td><td>114.060259</td><td>22.539604</td><td>0</td><td>36.8</td></tr><tr><td>S002</td><td>2014-10-22 12:02:00</td><td>114.061033</td><td>22.540040</td><td>0</td><td>16.4</td></tr><tr><td>S003</td><td>2014-10-22 12:03:00</td><td>114.061731</td><td>22.540471</td><td>0</td><td>39.4</td></tr><tr><td>S004</td><td>2014-10-22 12:04:00</td><td>114.061699</td><td>22.540195</td><td>0</td><td>24.7</td></tr><tr><td>S005</td><td>2014-10-22 12:05:00</td><td><span class=miss>∅</span></td><td><span class=miss>∅</span></td><td>0</td><td>0.0</td></tr></tbody></table></div>
+      <div class="cap">样本前 6 行（完整文件见上方下载）。</div>
+    </article>
+
+    <article class="sim-card">
+      <div class="sim-head">
+        <h3>越界坐标 <span class="sim-flag">模拟演示</span></h3>
+        <a class="dl" href="../data/sim/sim_out_of_range.csv" download>下载 CSV</a>
+      </div>
+      <p class="desc">经纬度超出合理范围（lat>90、lon 跑到上千、或跨省漂移）。无锡数据实测约 11.7% 跨省份越界。</p>
+      <p class="impact"><b>对分析的影响：</b>越界点多为坐标系统错误或漂移，应直接剔除，否则会把轨迹画到非洲/海里。</p>
+      <p class="detect"><b>怎么检测：</b>过滤 lat∈[-90,90] 且 lon∈[73,135]（中国陆域大致范围）外的点。</p>
+      <div class="table-wrap"><table class="sample"><thead><tr><th>taxi_id</th><th>timestamp</th><th>lon</th><th>lat</th><th>direction</th><th>speed_kmh</th></tr></thead>
+        <tbody><tr><td>W000</td><td>2020-07-18 12:00:00</td><td>114.059664</td><td>22.540760</td><td>121</td><td>29.3</td></tr><tr><td>W001</td><td>2020-07-18 12:01:00</td><td>114.059639</td><td>22.540095</td><td>121</td><td>7.4</td></tr><tr><td>W002</td><td>2020-07-18 12:02:00</td><td>114.060246</td><td>22.540564</td><td>121</td><td>11.0</td></tr><tr><td>W003</td><td>2020-07-18 12:03:00</td><td>114.059911</td><td>22.541285</td><td>121</td><td>23.4</td></tr><tr><td>W000</td><td>2020-07-18 12:04:00</td><td>114.059898</td><td>22.541679</td><td>121</td><td>14.8</td></tr><tr><td>W001</td><td>2020-07-18 12:05:00</td><td>114.060421</td><td>22.542225</td><td>121</td><td>21.0</td></tr></tbody></table></div>
+      <div class="cap">样本前 6 行（完整文件见上方下载）。</div>
+    </article>
+
+    <article class="sim-card">
+      <div class="sim-head">
+        <h3>常量传感器(占位) <span class="sim-flag">模拟演示</span></h3>
+        <a class="dl" href="../data/sim/sim_constant_sensor.csv" download>下载 CSV</a>
+      </div>
+      <p class="desc">行驶状态下 5 个 IMU 字段恒为同一常数（如 1202/315/120/343）。无锡实测 78% 行驶行如此。</p>
+      <p class="impact"><b>对分析的影响：</b>IMU 列实际是无用垃圾；经纬度/速度仍有效，但别拿 IMU 做加速度分析。</p>
+      <p class="detect"><b>怎么检测：</b>对行驶行检查 IMU 列的方差；方差=0 即常量占位，整列丢弃。</p>
+      <div class="table-wrap"><table class="sample"><thead><tr><th>taxi_id</th><th>timestamp</th><th>lon</th><th>lat</th><th>direction</th><th>speed_kmh</th><th>accel_x</th><th>accel_y</th><th>accel_z</th><th>yaw</th></tr></thead>
+        <tbody><tr><td>W000</td><td>2020-07-18 12:00:00</td><td>114.060090</td><td>22.540461</td><td>121</td><td>25.3</td><td>1202</td><td>315</td><td>120</td><td>343</td></tr><tr><td>W001</td><td>2020-07-18 12:01:00</td><td>114.059624</td><td>22.540277</td><td>121</td><td>19.2</td><td>1202</td><td>315</td><td>120</td><td>343</td></tr><tr><td>W002</td><td>2020-07-18 12:02:00</td><td>114.058916</td><td>22.539992</td><td>121</td><td>17.7</td><td>1202</td><td>315</td><td>120</td><td>343</td></tr><tr><td>W003</td><td>2020-07-18 12:03:00</td><td>114.058403</td><td>22.539382</td><td>121</td><td>14.1</td><td>1202</td><td>315</td><td>120</td><td>343</td></tr><tr><td>W000</td><td>2020-07-18 12:04:00</td><td>114.058264</td><td>22.539799</td><td>121</td><td>34.4</td><td>1202</td><td>315</td><td>120</td><td>343</td></tr><tr><td>W001</td><td>2020-07-18 12:05:00</td><td>114.058334</td><td>22.539391</td><td>121</td><td>14.1</td><td>1202</td><td>315</td><td>120</td><td>343</td></tr></tbody></table></div>
+      <div class="cap">样本前 6 行（完整文件见上方下载）。</div>
+    </article>
+
+    <article class="sim-card">
+      <div class="sim-head">
+        <h3>零速主导 <span class="sim-flag">模拟演示</span></h3>
+        <a class="dl" href="../data/sim/sim_zero_speed.csv" download>下载 CSV</a>
+      </div>
+      <p class="desc">绝大多数点 speed=0（长时间停靠/熄火），行驶点稀疏。</p>
+      <p class="impact"><b>对分析的影响：</b>行驶样本太少，速度/载客分析不可靠；适合只研究'停泊点'。</p>
+      <p class="detect"><b>怎么检测：</b>统计 speed=0 占比；过高则速度分析不可信，只做停泊分析。</p>
+      <div class="table-wrap"><table class="sample"><thead><tr><th>taxi_id</th><th>timestamp</th><th>lon</th><th>lat</th><th>passenger</th><th>speed_kmh</th></tr></thead>
+        <tbody><tr><td>S000</td><td>2014-10-22 12:00:00</td><td>114.060498</td><td>22.540726</td><td>0</td><td>37.5</td></tr><tr><td>S001</td><td>2014-10-22 12:01:00</td><td>114.060890</td><td>22.541367</td><td>0</td><td>0.0</td></tr><tr><td>S002</td><td>2014-10-22 12:02:00</td><td>114.060434</td><td>22.541181</td><td>0</td><td>0.0</td></tr><tr><td>S003</td><td>2014-10-22 12:03:00</td><td>114.060842</td><td>22.541067</td><td>0</td><td>0.0</td></tr><tr><td>S004</td><td>2014-10-22 12:04:00</td><td>114.060380</td><td>22.541437</td><td>0</td><td>0.0</td></tr><tr><td>S005</td><td>2014-10-22 12:05:00</td><td>114.059635</td><td>22.541850</td><td>0</td><td>34.5</td></tr></tbody></table></div>
+      <div class="cap">样本前 6 行（完整文件见上方下载）。</div>
+    </article>
+
+    <article class="sim-card">
+      <div class="sim-head">
+        <h3>稀疏采样 <span class="sim-flag">模拟演示</span></h3>
+        <a class="dl" href="../data/sim/sim_sparse.csv" download>下载 CSV</a>
+      </div>
+      <p class="desc">采样间隔极大（分钟级），点间直线连接会严重偏离真实道路。</p>
+      <p class="impact"><b>对分析的影响：</b>轨迹形状失真，只能看大致方向，不能做精细路径/速度分析。</p>
+      <p class="detect"><b>怎么检测：</b>相邻点时间间隔的中位数/最大值；间隔过大处轨迹会失真。</p>
+      <div class="table-wrap"><table class="sample"><thead><tr><th>taxi_id</th><th>timestamp</th><th>lon</th><th>lat</th></tr></thead>
+        <tbody><tr><td>T0000</td><td>2008-02-02 12:00:00</td><td>116.415676</td><td>39.893333</td></tr><tr><td>T0001</td><td>2008-02-02 12:300:00</td><td>116.405245</td><td>39.884950</td></tr><tr><td>T0002</td><td>2008-02-02 12:600:00</td><td>116.390189</td><td>39.892791</td></tr><tr><td>T0003</td><td>2008-02-02 12:1200:00</td><td>116.405669</td><td>39.882315</td></tr><tr><td>T0004</td><td>2008-02-02 12:1500:00</td><td>116.419630</td><td>39.900571</td></tr><tr><td>T0005</td><td>2008-02-02 12:2100:00</td><td>116.418138</td><td>39.917804</td></tr></tbody></table></div>
+      <div class="cap">样本前 6 行（完整文件见上方下载）。</div>
+    </article>
+
+    <article class="sim-card">
+      <div class="sim-head">
+        <h3>混合分隔符 <span class="sim-flag">模拟演示</span></h3>
+        <a class="dl" href="../data/sim/sim_mixed_delim.csv" download>下载 CSV</a>
+      </div>
+      <p class="desc">首列 id 后跟制表符 \t，其余字段用逗号。无锡原始 CSV 即如此，普通 csv.reader 会解析失败。</p>
+      <p class="impact"><b>对分析的影响：</b>解析时须先 split(',') 再 strip 首字段尾随 tab，否则整行错列。</p>
+      <p class="detect"><b>怎么检测：</b>按行 split(',') 后看首字段是否仍含 '\t'；解析前先 strip。</p>
+      <div class="table-wrap"><table class="sample"><thead><tr><th>taxi_id </th><th> timestamp </th><th> lon </th><th> lat </th><th> direction </th><th> speed_kmh</th></tr></thead>
+        <tbody><tr><td>W000</td><td> 2020-07-18 12:00:00	</td><td> 120.299680	</td><td> 31.550033	</td><td> 121	</td><td> 2.5</td></tr><tr><td>W001</td><td> 2020-07-18 12:01:00	</td><td> 120.300248	</td><td> 31.549474	</td><td> 121	</td><td> 13.4</td></tr><tr><td>W002</td><td> 2020-07-18 12:02:00	</td><td> 120.300749	</td><td> 31.549711	</td><td> 121	</td><td> 35.7</td></tr><tr><td>W003</td><td> 2020-07-18 12:03:00	</td><td> 120.300416	</td><td> 31.549397	</td><td> 121	</td><td> 1.7</td></tr><tr><td>W000</td><td> 2020-07-18 12:04:00	</td><td> 120.299860	</td><td> 31.549000	</td><td> 121	</td><td> 6.9</td></tr><tr><td>W001</td><td> 2020-07-18 12:05:00	</td><td> 120.300152	</td><td> 31.548687	</td><td> 121	</td><td> 23.8</td></tr></tbody></table></div>
+      <div class="cap">样本前 6 行（完整文件见上方下载）。</div>
+    </article>
+
+    <article class="sim-card">
+      <div class="sim-head">
+        <h3>时间戳混乱 <span class="sim-flag">模拟演示</span></h3>
+        <a class="dl" href="../data/sim/sim_timestamp_chaos.csv" download>下载 CSV</a>
+      </div>
+      <p class="desc">时间格式不统一：ISO、美式、Unix 秒、斜杠式混用。</p>
+      <p class="impact"><b>对分析的影响：</b>必须统一解析为 datetime 才能算时长/速度；格式识别错误会导致时间倒流。</p>
+      <p class="detect"><b>怎么检测：</b>尝试多种格式解析，解析失败即异常；统一为 datetime。</p>
+      <div class="table-wrap"><table class="sample"><thead><tr><th>taxi_id</th><th>timestamp</th><th>lon</th><th>lat</th><th>passenger</th><th>speed_kmh</th></tr></thead>
+        <tbody><tr><td>S000</td><td>2020-07-18 12:00:00</td><td>114.059611</td><td>22.540366</td><td>0</td><td>28.8</td></tr><tr><td>S001</td><td>07/18/2020 12:01</td><td>114.058970</td><td>22.540155</td><td>0</td><td>13.2</td></tr><tr><td>S002</td><td>1595049620</td><td>114.059752</td><td>22.540399</td><td>0</td><td>31.3</td></tr><tr><td>S003</td><td>2020/7/18 12:03</td><td>114.060367</td><td>22.540012</td><td>0</td><td>34.9</td></tr><tr><td>S004</td><td>2020-07-18 12:04:00</td><td>114.060116</td><td>22.540075</td><td>0</td><td>3.9</td></tr><tr><td>S005</td><td>07/18/2020 12:05</td><td>114.060418</td><td>22.539750</td><td>0</td><td>3.3</td></tr></tbody></table></div>
+      <div class="cap">样本前 6 行（完整文件见上方下载）。</div>
+    </article>
+
+    <article class="sim-card">
+      <div class="sim-head">
+        <h3>重复点 <span class="sim-flag">模拟演示</span></h3>
+        <a class="dl" href="../data/sim/sim_dup_points.csv" download>下载 CSV</a>
+      </div>
+      <p class="desc">同一位置连续多条完全相同记录（GPS 静止时高频 ping）。北京实测约 8% 是此类。</p>
+      <p class="impact"><b>对分析的影响：</b>无损可删：去重后轨迹不变，体积还能小一点。</p>
+      <p class="detect"><b>怎么检测：</b>按 (id, 时间, 经纬度) 去重；统计重复行占比。</p>
+      <div class="table-wrap"><table class="sample"><thead><tr><th>taxi_id</th><th>timestamp</th><th>lon</th><th>lat</th></tr></thead>
+        <tbody><tr><td>T0000</td><td>2008-02-02 12:00:00</td><td>116.400581</td><td>39.899762</td></tr><tr><td>T0001</td><td>2008-02-02 12:01:00</td><td>116.400089</td><td>39.899705</td></tr><tr><td>T0002</td><td>2008-02-02 12:02:00</td><td>116.400574</td><td>39.900477</td></tr><tr><td>T0003</td><td>2008-02-02 12:03:00</td><td>116.399989</td><td>39.899795</td></tr><tr><td>T0004</td><td>2008-02-02 12:04:00</td><td>116.400558</td><td>39.900144</td></tr><tr><td>T0005</td><td>2008-02-02 12:05:00</td><td>116.400697</td><td>39.900854</td></tr></tbody></table></div>
+      <div class="cap">样本前 6 行（完整文件见上方下载）。</div>
+    </article>
+
+    <article class="sim-card">
+      <div class="sim-head">
+        <h3>载客状态缺失 <span class="sim-flag">模拟演示</span></h3>
+        <a class="dl" href="../data/sim/sim_passenger_missing.csv" download>下载 CSV</a>
+      </div>
+      <p class="desc">passenger 字段空白或异常，无法区分空车/载客。</p>
+      <p class="impact"><b>对分析的影响：</b>载客率算不出；OD/热点分析可信度下降。</p>
+      <p class="detect"><b>怎么检测：</b>passenger 为空/非 0/1 即异常；载客率按有效行计算。</p>
+      <div class="table-wrap"><table class="sample"><thead><tr><th>taxi_id</th><th>timestamp</th><th>lon</th><th>lat</th><th>passenger</th><th>speed_kmh</th></tr></thead>
+        <tbody><tr><td>S000</td><td>2014-10-22 12:00:00</td><td>114.060755</td><td>22.539439</td><td>1</td><td>20.6</td></tr><tr><td>S001</td><td>2014-10-22 12:01:00</td><td>114.060465</td><td>22.539393</td><td>0</td><td>15.6</td></tr><tr><td>S002</td><td>2014-10-22 12:02:00</td><td>114.060028</td><td>22.538666</td><td>0</td><td>33.5</td></tr><tr><td>S003</td><td>2014-10-22 12:03:00</td><td>114.059971</td><td>22.538430</td><td>0</td><td>21.5</td></tr><tr><td>S004</td><td>2014-10-22 12:04:00</td><td>114.059400</td><td>22.538558</td><td>1</td><td>28.8</td></tr><tr><td>S005</td><td>2014-10-22 12:05:00</td><td>114.059797</td><td>22.539265</td><td>0</td><td>6.0</td></tr></tbody></table></div>
+      <div class="cap">样本前 6 行（完整文件见上方下载）。</div>
+    </article>
+
+    <article class="sim-card">
+      <div class="sim-head">
+        <h3>跨日轨迹 <span class="sim-flag">模拟演示</span></h3>
+        <a class="dl" href="../data/sim/sim_cross_midnight.csv" download>下载 CSV</a>
+      </div>
+      <p class="desc">轨迹跨越午夜，按「日」切分时会把一条连续行程拦腰截断。</p>
+      <p class="impact"><b>对分析的影响：</b>按自然日聚合前要先做「行程连续性」判断，否则跨日行程被拆碎。</p>
+      <p class="detect"><b>怎么检测：</b>切分行程前先按时间连续性判断，避免被自然日截断。</p>
+      <div class="table-wrap"><table class="sample"><thead><tr><th>taxi_id</th><th>timestamp</th><th>lon</th><th>lat</th></tr></thead>
+        <tbody><tr><td>T0000</td><td>2008-02-02 23:50:00</td><td>116.399702</td><td>39.900842</td></tr><tr><td>T0001</td><td>2008-02-02 23:51:00</td><td>116.400271</td><td>39.900381</td></tr><tr><td>T0002</td><td>2008-02-02 23:52:00</td><td>116.399586</td><td>39.900685</td></tr><tr><td>T0003</td><td>2008-02-02 23:53:00</td><td>116.398629</td><td>39.901477</td></tr><tr><td>T0004</td><td>2008-02-02 23:54:00</td><td>116.398849</td><td>39.901148</td></tr><tr><td>T0005</td><td>2008-02-02 23:55:00</td><td>116.399769</td><td>39.900373</td></tr></tbody></table></div>
+      <div class="cap">样本前 6 行（完整文件见上方下载）。</div>
+    </article>
+  </div>
+
+  <hr/>
+  <h2>怎么用这份图鉴</h2>
+  <ul>
+    <li><strong>接新数据前</strong>：对照这 12 种情况，先问"它会不会有越界/缺失/常量/时间戳问题"，再动手。</li>
+    <li><strong>清洗时</strong>：每张卡的"怎么检测"就是对应的清洗规则，可直接写成代码。</li>
+    <li><strong>教学时</strong>：把模拟 CSV 当成练习数据，比直接用几个 G 的真实数据更轻、更快。</li>
+  </ul>
+  <div class="why">
+    <span class="icon">🧭</span>
+    <div>这些方法不是凭空想的，而是从本项目真实数据里提炼的：无锡的常量 IMU、跨省份越界、混合分隔符，
+    北京的重复点，深圳的零速占比——都已在各数据集详情页和数据质量分析里实锤。模拟数据只是把它们单独放大给你看。</div>
+  </div>
+
+  <div style="display:flex;gap:12px;flex-wrap:wrap;margin:30px 0;">
+    <a class="btn ghost" href="../index.html">← 返回主页</a>
+    <a class="btn" href="../guide/trajectory.html">基础：数据质量四维度 →</a>
+  </div>
+</div></main>
+
+<footer class="site-footer"><div class="container"><div class="row">
+  <div>出租车轨迹数据分析 · 从 GPS 到分析</div>
+  <div>数据归各自来源所有 · 代码 MIT</div>
+</div></div></footer>
+<button class="to-top" aria-label="返回顶部">↑</button>
+<script src="../assets/js/main.js"></script>
+</body>
+</html>

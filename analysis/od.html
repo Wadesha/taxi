@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>OD 出行矩阵 · 分析</title>
+<meta name="description" content="OD 出行矩阵：从出租车轨迹中还原出发地-目的地流动。含模拟演示图与真实数据构建方法。" />
+<link rel="stylesheet" href="../assets/css/style.css" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23db2777'/%3E%3Ctext x='16' y='22' font-size='18' text-anchor='middle' fill='white' font-family='Arial' font-weight='bold'%3EO%3C/text%3E%3C/svg%3E" />
+</head>
+<body>
+
+<header class="site-header">
+  <div class="container">
+    <nav class="nav" aria-label="主导航">
+      <a class="brand" href="../index.html"><span class="brand-mark" aria-hidden="true"></span><span>轨迹数据分析</span></a>
+      <div class="nav-links">
+        <a href="../index.html">主页</a>
+        <a href="../guide/gps.html">基础概念</a>
+        <a href="../index.html#datasets">数据集</a>
+        <a href="./overview.html">分析</a>
+        <a href="../methodology/pipeline.html">方法</a>
+      </div>
+      <button class="theme-toggle" aria-label="切换主题">☾</button>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="container">
+
+    <div class="crumbs">
+      <a href="../index.html">主页</a><span class="sep">/</span>
+      <a href="./overview.html">分析</a><span class="sep">/</span>
+      <span>OD 出行矩阵</span>
+    </div>
+
+    <span class="section-eyebrow" style="color:var(--analysis);">分析 · OD</span>
+    <h1>OD 矩阵：从"车怎么动"到"人怎么流"</h1>
+    <p style="max-width:800px;">
+      轨迹数据最有价值的抽象之一，是把每段移动压缩成"<b>从 A 区到 B 区</b>"的出行。
+      把全天所有这样的"从哪来、到哪去"汇总成一张表，就是 <b>OD 出行矩阵</b>（Origin–Destination Matrix）。
+      它能回答：商圈几点涌入？居住区早晨流向哪里？高铁站主要服务哪些区？
+    </p>
+
+    <hr/>
+
+    <h2 id="concept">概念：OD 矩阵不是地图，是一张"流量表"</h2>
+    <p>矩阵的行是<b>出发地（O）</b>，列是<b>目的地（D）</b>，格子里的数字是出行量。如果研究深圳市，行/列可以是行政区；如果研究一个商圈，行/列可以是周边 1 km × 1 km 的网格。</p>
+
+    <div class="diagram">
+      <svg viewBox="0 0 560 270" role="img" aria-label="OD 矩阵概念示意">
+        <rect x="50" y="50" width="300" height="200" fill="none" stroke="#cbd2d9" stroke-width="2"/>
+        <text x="70" y="40" font-size="14" font-weight="bold" fill="#1f2933">目的地 D</text>
+        <text x="20" y="140" font-size="14" font-weight="bold" fill="#1f2933" transform="rotate(-90 20 140)">出发地 O</text>
+
+        <!-- header -->
+        <text x="100" y="75" text-anchor="middle" font-size="12" fill="#4a5568">福田</text>
+        <text x="170" y="75" text-anchor="middle" font-size="12" fill="#4a5568">南山</text>
+        <text x="240" y="75" text-anchor="middle" font-size="12" fill="#4a5568">罗湖</text>
+        <text x="310" y="75" text-anchor="middle" font-size="12" fill="#4a5568">龙岗</text>
+
+        <text x="75" y="120" text-anchor="end" font-size="12" fill="#4a5568">福田</text>
+        <text x="75" y="160" text-anchor="end" font-size="12" fill="#4a5568">南山</text>
+        <text x="75" y="200" text-anchor="end" font-size="12" fill="#4a5568">罗湖</text>
+        <text x="75" y="240" text-anchor="end" font-size="12" fill="#4a5568">龙岗</text>
+
+        <!-- cells with values -->
+        <rect x="85" y="95" width="60" height="35" fill="#f59e0b" opacity="0.6"/>
+        <text x="115" y="118" text-anchor="middle" font-size="13" fill="#fff" font-weight="bold">420</text>
+        <rect x="155" y="95" width="60" height="35" fill="#f59e0b" opacity="0.4"/>
+        <text x="185" y="118" text-anchor="middle" font-size="13" fill="#1f2933">180</text>
+        <rect x="225" y="95" width="60" height="35" fill="#f59e0b" opacity="0.3"/>
+        <text x="255" y="118" text-anchor="middle" font-size="13" fill="#1f2933">90</text>
+
+        <rect x="85" y="135" width="60" height="35" fill="#f59e0b" opacity="0.45"/>
+        <text x="115" y="158" text-anchor="middle" font-size="13" fill="#1f2933">140</text>
+        <rect x="155" y="135" width="60" height="35" fill="#f59e0b" opacity="0.6"/>
+        <text x="185" y="158" text-anchor="middle" font-size="13" fill="#fff" font-weight="bold">380</text>
+        <rect x="225" y="135" width="60" height="35" fill="#f59e0b" opacity="0.35"/>
+        <text x="255" y="158" text-anchor="middle" font-size="13" fill="#1f2933">110</text>
+
+        <rect x="85" y="175" width="60" height="35" fill="#f59e0b" opacity="0.35"/>
+        <text x="115" y="198" text-anchor="middle" font-size="13" fill="#1f2933">115</text>
+        <rect x="155" y="175" width="60" height="35" fill="#f59e0b" opacity="0.3"/>
+        <text x="185" y="198" text-anchor="middle" font-size="13" fill="#1f2933">80</text>
+        <rect x="225" y="175" width="60" height="35" fill="#f59e0b" opacity="0.6"/>
+        <text x="255" y="198" text-anchor="middle" font-size="13" fill="#fff" font-weight="bold">390</text>
+
+        <rect x="85" y="215" width="60" height="35" fill="#f59e0b" opacity="0.2"/>
+        <text x="115" y="238" text-anchor="middle" font-size="13" fill="#1f2933">55</text>
+        <rect x="155" y="215" width="60" height="35" fill="#f59e0b" opacity="0.25"/>
+        <text x="185" y="238" text-anchor="middle" font-size="13" fill="#1f2933">70</text>
+        <rect x="225" y="215" width="60" height="35" fill="#f59e0b" opacity="0.3"/>
+        <text x="255" y="238" text-anchor="middle" font-size="13" fill="#1f2933">95</text>
+
+        <!-- arrow annotation -->
+        <line x1="420" y1="110" x2="510" y2="110" stroke="#2563eb" stroke-width="2" marker-end="url(#a1)"/>
+        <text x="465" y="100" text-anchor="middle" font-size="12" fill="#2563eb">福田 → 南山 通勤</text>
+
+        <defs>
+          <marker id="a1" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M0,0 L6,4 L0,8 Z" fill="#2563eb"/></marker>
+        </defs>
+      </svg>
+      <div class="caption">OD 矩阵：每个格子 O→D 的数值代表从出发区到目的区的出行次数或强度。颜色越深，流量越大。</div>
+    </div>
+
+    <hr/>
+
+    <h2 id="from-tracks">如何从真实轨迹构建 OD 矩阵？</h2>
+    <p>构建 OD 不是简单"第一个点当 O、最后一个点当 D"，因为一辆车一天有很多段行程。正确的做法是先"<b>分行程</b>"：</p>
+    <ol class="steps">
+      <li><b>切分停留点</b><p>用速度≈0、连续 N 分钟不动的点识别一次驻停（上客或下客）。</p></li>
+      <li><b>相邻驻停点之间就是一段行程</b><p>行程起点 = 上一个停留点的中心，终点 = 下一个停留点的中心。</p></li>
+      <li><b>把坐标映射到区域</b><p>例如把经纬度落到行政区边界或 1 km 网格。</p></li>
+      <li><b>按 O-D 汇总计数</b><p>全天所有行程的 O-D 对统计频次，填进矩阵。</p></li>
+    </ol>
+
+    <div class="callout note">
+      <span class="icon">📌</span>
+      <div>
+        <strong>深圳为什么最适合做 OD？</strong>因为它有 <code>passenger</code> 字段。
+        空车→载客那一刻可视为上客（O 附近），载客→空车那一刻可视为下客（D 附近），比纯停留点检测更直接。
+        北京没有 passenger，只能用长时间驻停来推断 OD，准确度会低一些。
+      </div>
+    </div>
+
+    <hr/>
+
+    <h2 id="demo">模拟演示：深圳市分区 OD 矩阵</h2>
+    <p>
+      下面这张 OD 矩阵<b>不是用真实数据逐条算出来的</b>，而是按深圳主要行政区构造的<b>模拟示例</b>：
+      对角线高（区内出行多），福田↔南山、福田↔宝安有明显强联系。它用于展示 OD 矩阵的可视化形态与阅读方法。
+    </p>
+    <figure class="figure">
+      <div class="frame"><img src="../assets/img/od-matrix-demo.png" alt="模拟 OD 出行矩阵" /></div>
+      <figcaption><span class="sim-flag">模拟演示</span> · 深圳市分区 OD 出行矩阵示例。行 = 出发区，列 = 到达区，颜色越深/数字越大表示联系越强。真实 OD 需按停留点或 passenger 切换从原始轨迹还原。</figcaption>
+    </figure>
+
+    <div class="concept">
+      <span class="icon">🧭</span>
+      <div>
+        <strong>读 OD 矩阵的三个角度：</strong>
+        <ul style="margin:.4em 0 0;">
+          <li><b>对角线</b>：区内出行多，说明城市内部活动为主；</li>
+          <li><b>强非对角格</b>：如福田→南山，代表跨区通勤或商务联系；</li>
+          <li><b>行和 vs 列和</b>：行和大的区是"出发源地"（居住区），列和大的区是"吸引力汇"（商务区/交通枢纽）。</li>
+        </ul>
+      </div>
+    </div>
+
+    <hr/>
+
+    <h2 id="applications">OD 矩阵能回答什么问题？</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>问题</th><th>OD 怎么用</th></tr></thead>
+        <tbody>
+          <tr><td>早高峰人流从哪涌向 CBD？</td><td>看住宅区 → 商务区的高峰 OD 流量</td></tr>
+          <tr><td>高铁站服务范围有多大？</td><td>看各行政/网格 → 高铁站的 OD 强度</td></tr>
+          <tr><td>哪些区之间联系最弱？</td><td>看稀疏 OD 格，可能对应公交覆盖不足</td></tr>
+          <tr><td>空车调度怎么优化？</td><td>OD 行和大的区更容易产生下一单，司机可就近驻停等单</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div style="display:flex;gap:12px;flex-wrap:wrap;margin:30px 0;">
+      <a class="btn ghost" href="./trajectory.html">← 轨迹与空间分布</a>
+      <a class="btn" href="./hotspot.html">热点识别 →</a>
+    </div>
+
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="container"><div class="row">
+    <div>出租车轨迹数据分析 · 从 GPS 到分析</div>
+    <div>数据归各自来源所有 · 代码 MIT</div>
+  </div></div>
+</footer>
+
+<button class="to-top" aria-label="返回顶部">↑</button>
+<script src="../assets/js/main.js"></script>
+</body>
+</html>

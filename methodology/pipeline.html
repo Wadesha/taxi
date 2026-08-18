@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>数据管线 · 方法</title>
+<meta name="description" content="出租车轨迹数据分析的数据管线：从原始 RAR/ZIP/CSV 到清洗、分析、可视化的完整 Python 处理流程。" />
+<link rel="stylesheet" href="../assets/css/style.css" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230284c7'/%3E%3Ctext x='16' y='22' font-size='18' text-anchor='middle' fill='white' font-family='Arial' font-weight='bold'%3E管%3C/text%3E%3C/svg%3E" />
+</head>
+<body>
+
+<header class="site-header">
+  <div class="container">
+    <nav class="nav" aria-label="主导航">
+      <a class="brand" href="../index.html"><span class="brand-mark" aria-hidden="true"></span><span>轨迹数据分析</span></a>
+      <div class="nav-links">
+        <a href="../index.html">主页</a>
+        <a href="../guide/gps.html">基础概念</a>
+        <a href="../index.html#datasets">数据集</a>
+        <a href="../analysis/overview.html">分析</a>
+        <a href="./pipeline.html">方法</a>
+      </div>
+      <button class="theme-toggle" aria-label="切换主题">☾</button>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="container">
+
+    <div class="crumbs">
+      <a href="../index.html">主页</a><span class="sep">/</span>
+      <a href="./pipeline.html">方法</a><span class="sep">/</span>
+      <span>数据管线</span>
+    </div>
+
+    <span class="section-eyebrow" style="color:var(--method);">方法 · 管线</span>
+    <h1>从原始文件到可看的图：完整管线</h1>
+    <p style="max-width:800px;">
+      一份出租车轨迹数据在能被分析之前，要经历"<b>解压 → 解析 → 清洗 → 分析 → 可视化</b>"五个阶段。
+      本项目的静态站和图表全部依赖 Python + pandas + matplotlib 完成，没有复杂框架，便于复现。
+    </p>
+
+    <hr/>
+
+    <h2 id="pipeline">五阶段管线</h2>
+    <div class="diagram">
+      <svg viewBox="0 0 720 130" role="img" aria-label="数据管线五阶段">
+        <defs>
+          <marker id="ar" markerWidth="9" markerHeight="9" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#2563eb"/></marker>
+        </defs>
+        <rect x="15" y="35" width="115" height="60" rx="8" fill="#fee2e2" stroke="#ef4444" stroke-width="2"/>
+        <text x="72" y="62" text-anchor="middle" font-size="13" font-weight="bold" fill="#b91c1c">1 解压</text>
+        <text x="72" y="80" text-anchor="middle" font-size="11" fill="#7f1d1d">7-Zip / zipfile</text>
+
+        <line x1="130" y1="65" x2="150" y2="65" stroke="#2563eb" stroke-width="2" marker-end="url(#ar)"/>
+
+        <rect x="155" y="35" width="115" height="60" rx="8" fill="#fef3c7" stroke="#f59e0b" stroke-width="2"/>
+        <text x="212" y="62" text-anchor="middle" font-size="13" font-weight="bold" fill="#b45309">2 解析</text>
+        <text x="212" y="80" text-anchor="middle" font-size="11" fill="#78350f">pandas / csv</text>
+
+        <line x1="270" y1="65" x2="290" y2="65" stroke="#2563eb" stroke-width="2" marker-end="url(#ar)"/>
+
+        <rect x="295" y="35" width="115" height="60" rx="8" fill="#d1fae5" stroke="#10b981" stroke-width="2"/>
+        <text x="352" y="62" text-anchor="middle" font-size="13" font-weight="bold" fill="#047857">3 清洗</text>
+        <text x="352" y="80" text-anchor="middle" font-size="11" fill="#065f46">去重/裁剪/异常</text>
+
+        <line x1="410" y1="65" x2="430" y2="65" stroke="#2563eb" stroke-width="2" marker-end="url(#ar)"/>
+
+        <rect x="435" y="35" width="115" height="60" rx="8" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/>
+        <text x="492" y="62" text-anchor="middle" font-size="13" font-weight="bold" fill="#1d4ed8">4 分析</text>
+        <text x="492" y="80" text-anchor="middle" font-size="11" fill="#1e3a8a">停留/OD/密度</text>
+
+        <line x1="550" y1="65" x2="570" y2="65" stroke="#2563eb" stroke-width="2" marker-end="url(#ar)"/>
+
+        <rect x="575" y="35" width="115" height="60" rx="8" fill="#f3e8ff" stroke="#7c3aed" stroke-width="2"/>
+        <text x="632" y="62" text-anchor="middle" font-size="13" font-weight="bold" fill="#5b21b6">5 可视化</text>
+        <text x="632" y="80" text-anchor="middle" font-size="11" fill="#4c1d95">matplotlib</text>
+      </svg>
+      <div class="caption">出租车轨迹数据处理五阶段：解压 → 解析 → 清洗 → 分析 → 可视化。</div>
+    </div>
+
+    <hr/>
+
+    <h2 id="extract">阶段 1：解压原始文件</h2>
+    <p>三城原始文件的归档方式不同：</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>城市</th><th>原始格式</th><th>解压后结构</th></tr></thead>
+        <tbody>
+          <tr><td>北京</td><td><code>.rar</code>（单个压缩包）</td><td><code>Beijing(...)/T-Drive trajectory data sample/1.txt ...</code></td></tr>
+          <tr><td>深圳</td><td><code>.zip</code>（含 24 个 CSV）</td><td><code>00_时.csv</code> ... <code>23_时.csv</code></td></tr>
+          <tr><td>无锡</td><td><code>.zip</code>（含多日 CSV）</td><td><code>20200718.csv</code> ...</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>解压示例（Python）：</p>
+<pre><code># 深圳：解压 2014_10_22.zip
+import zipfile, os
+with zipfile.ZipFile(r"raw/shenzhen/2014_10_22.zip", 'r') as z:
+    z.extractall(r"raw/shenzhen/")
+
+# 北京：用 7-Zip 命令行解压 RAR
+# 7z x "raw/beijing/2.T_drive 轨迹数据.rar" -oraw/beijing/
+</code></pre>
+
+    <hr/>
+
+    <h2 id="parse">阶段 2：解析——三城三个"小脾气"</h2>
+
+    <h3>北京：无表头，四字段纯数字</h3>
+<pre><code>import pandas as pd
+p = r"raw/beijing/.../T-Drive trajectory data sample/1.txt"
+df = pd.read_csv(p, header=None, names=['taxi_id','ts','lon','lat'])
+</code></pre>
+
+    <h3>深圳：有表头，标准 CSV</h3>
+<pre><code>p = r"raw/shenzhen/12_时.csv"
+df = pd.read_csv(p, nrows=400000)  # 大文件可采样
+# 字段：trajectory_id, date, lon, lat, passenger, speed(km/h)
+</code></pre>
+
+    <h3>无锡：表头正常，但每行 id 后带隐藏制表符</h3>
+    <p>无锡文件每行的格式是 <code>id\t,lon,lat,...</code>：id 和第一个逗号之间藏了一个制表符。直接用 pandas 读会把它吞进 id 字段，必须手动清理：</p>
+<pre><code>p = r"raw/wuxi/data/20200718.csv"
+recs = []
+with open(p, 'r', encoding='utf-8', errors='replace') as f:
+    for i, line in enumerate(f):
+        line = line.rstrip('\r\n')
+        if i == 0: continue
+        cells = line.split(',')
+        cells[0] = cells[0].strip()   # 去掉 id 后的 \t
+        recs.append(cells)
+
+cols = ['id','经度','纬度','采集时间','方向','速度',
+        '纵向加速度','横向加速度','垂直加速度','横摆角速度']
+df = pd.DataFrame(recs, columns=cols)
+</code></pre>
+
+    <div class="callout warn">
+      <span class="icon">⚠️</span>
+      <div>
+        <strong>解析阶段的常见坑：</strong>
+        ① 北京没有时间列，需要自己解析字符串成 datetime；
+        ② 深圳 <code>date</code> 只有时分秒，必须结合文件名补真实日期；
+        ③ 无锡 id 列带隐藏制表符，不清洗会污染后续去重/分组。
+      </div>
+    </div>
+
+    <hr/>
+
+    <h2 id="clean">阶段 3：清洗——让数据可信</h2>
+    <p>清洗不是"删掉不合心意的数"，而是<b>给数据划定可信边界</b>。本项目常用的三条：</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>清洗项</th><th>规则示例</th><th>目的</th></tr></thead>
+        <tbody>
+          <tr><td>边界裁剪</td><td>深圳 lon∈[113.7,114.7], lat∈[22.3,23.0]</td><td>去掉邻近城市漂移点</td></tr>
+          <tr><td>速度截尾</td><td>删除 speed&gt;120 km/h</td><td>过滤 GPS 跳变和高速异常</td></tr>
+          <tr><td>去重</td><td><code>df.drop_duplicates(subset=['lon','lat'])</code></td><td>去掉 GPS 漂移导致的重复记录</td></tr>
+          <tr><td>排序</td><td>按 vehicle_id + timestamp 排序</td><td>保证轨迹连续</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>示例：</p>
+<pre><code># 深圳清洗
+shenzhen_clean = df[
+    df['lon'].between(113.7, 114.7) &
+    df['lat'].between(22.3, 23.0) &
+    (df['speed(km/h)'] &lt;= 120)
+].drop_duplicates(subset=['trajectory_id','lon','lat','date'])
+</code></pre>
+
+    <hr/>
+
+    <h2 id="analyze">阶段 4：分析——三个核心方法</h2>
+    <p>清洗后的数据通常按"车辆 → 时间排序"组织。在此基础上：</p>
+
+    <div class="grid grid-3">
+      <div class="card method">
+        <div class="accent-bar"></div>
+        <h3>停留点检测</h3>
+        <p>速度≈0 且持续时间&gt;阈值 → 一个停留点。把连续移动段切分成 O-D 对。</p>
+      </div>
+      <div class="card method">
+        <div class="accent-bar"></div>
+        <h3>速度画像</h3>
+        <p>分箱统计速度分布；按小时/路段聚合，识别高峰拥堵时段。</p>
+      </div>
+      <div class="card method">
+        <div class="accent-bar"></div>
+        <h3>热点聚类</h3>
+        <p>把停留点堆叠，用 DBSCAN / KDE 找出高密度区，即为空间热点。</p>
+      </div>
+    </div>
+
+    <hr/>
+
+    <h2 id="visualize">阶段 5：可视化——matplotlib 出图</h2>
+    <p>本项目所有图表用 matplotlib 的 <code>Agg</code> 后端生成 PNG，再嵌入静态 HTML：</p>
+<pre><code>import matplotlib
+matplotlib.use('Agg')      # 无头环境出图
+import matplotlib.pyplot as plt
+
+fig, ax = plt.subplots(figsize=(10, 8))
+ax.scatter(df['lon'], df['lat'], s=2, alpha=0.4)
+ax.set_xlabel('经度'); ax.set_ylabel('纬度')
+fig.savefig('assets/img/example.png', dpi=150, bbox_inches='tight')
+</code></pre>
+
+    <div class="callout note">
+      <span class="icon">📌</span>
+      <div>
+        <strong>为什么选 matplotlib 而不是交互地图库？</strong>
+        因为目标是 GitHub Pages 静态站，没有后端、没有 API key、不依赖在线地图服务。
+        matplotlib 出 PNG 最稳，<b>任何人 fork 仓库后都能直接复现</b>。
+      </div>
+    </div>
+
+    <h2 id="scripts">仓库里的脚本位置</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>脚本</th><th>作用</th></tr></thead>
+        <tbody>
+          <tr><td><code>scripts/extract_rar.py</code></td><td>解压北京 RAR 原始数据</td></tr>
+          <tr><td><code>scripts/visualize_taxi_data.py</code></td><td>生成原始 12 面板综合分析图</td></tr>
+          <tr><td><code>scripts/generate_supplement_charts.py</code></td><td>生成补充真实数据图 + 模拟演示图</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div style="display:flex;gap:12px;flex-wrap:wrap;margin:30px 0;">
+      <a class="btn ghost" href="../analysis/hotspot.html">← 热点识别</a>
+      <a class="btn" href="./deploy.html">GitHub Pages 部署 →</a>
+    </div>
+
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="container"><div class="row">
+    <div>出租车轨迹数据分析 · 从 GPS 到分析</div>
+    <div>数据归各自来源所有 · 代码 MIT</div>
+  </div></div>
+</footer>
+
+<button class="to-top" aria-label="返回顶部">↑</button>
+<script src="../assets/js/main.js"></script>
+</body>
+</html>

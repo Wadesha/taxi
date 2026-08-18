@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>无锡 · 数据集</title>
+<meta name="description" content="无锡出租车轨迹数据集详解：9 维惯性信号（速度/加速度/横摆角速度）的物理含义、真实样本、数据质量异常与驾驶行为分析能力。" />
+<link rel="stylesheet" href="../assets/css/style.css" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%2316a085'/%3E%3Ctext x='16' y='22' font-size='18' text-anchor='middle' fill='white' font-family='Arial' font-weight='bold'%3E锡%3C/text%3E%3C/svg%3E" />
+</head>
+<body>
+
+<header class="site-header">
+  <div class="container">
+    <nav class="nav" aria-label="主导航">
+      <a class="brand" href="../index.html"><span class="brand-mark" aria-hidden="true"></span><span>轨迹数据分析</span></a>
+      <div class="nav-links">
+        <a href="../index.html">主页</a>
+        <a href="../guide/gps.html">基础概念</a>
+        <a href="../index.html#datasets">数据集</a>
+        <a href="../analysis/overview.html">分析</a>
+        <a href="../methodology/pipeline.html">方法</a>
+      </div>
+      <button class="theme-toggle" aria-label="切换主题">☾</button>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="container">
+
+    <div class="crumbs">
+      <a href="../index.html">主页</a><span class="sep">/</span>
+      <a href="../index.html#datasets">数据集</a><span class="sep">/</span>
+      <span>无锡</span>
+    </div>
+
+    <span class="section-eyebrow" style="color:var(--wuxi);">数据集 · Wuxi Floating-Car</span>
+    <h1>无锡：最"重"的一份数据</h1>
+    <p style="max-width:820px;">
+      北京给你"位置"，深圳给你"位置+载客+速度"，而无锡直接把车上的
+      <b>惯性传感器（IMU）</b>也记录了下来——除了经纬度，还有<b>速度、纵向加速度、横向加速度、
+      垂直加速度、横摆角速度</b>。一份记录不再是"车在哪儿"，而是"<b>车在哪儿、朝哪开、加速还是刹车、
+      过弯猛不猛、路平不平</b>"。这是三份数据里信息维度最高的一份。
+    </p>
+
+    <div class="grid grid-4">
+      <div class="stat-card"><div class="label">字段数</div><div class="value">10</div><div class="hint">含 6 个传感器量</div></div>
+      <div class="stat-card"><div class="label">独特信号</div><div class="value">9 维</div><div class="hint">GPS + IMU 融合</div></div>
+      <div class="stat-card"><div class="label">采样间隔</div><div class="value">30–60<span class="unit">秒</span></div><div class="hint">不同设备不一</div></div>
+      <div class="stat-card"><div class="label">独有能力</div><div class="value">驾驶行为</div><div class="hint">北京/深圳做不了</div></div>
+    </div>
+
+    <hr/>
+
+    <h2 id="imu">先搞懂：什么是"惯性信号"？</h2>
+    <p>
+      现代出租车/网约车不止有 GPS，车里还有一组叫 <b>IMU（惯性测量单元）</b>的传感器，
+      像手机的重力感应一样，能感知车辆自身的运动。GPS 只告诉你"<b>在哪里</b>"，
+      IMU 告诉你"<b>怎么动</b>"。把两者合在一起，就从"点的轨迹"升级成"带物理状态的轨迹"。
+    </p>
+
+    <div class="diagram">
+      <svg viewBox="0 0 680 230" role="img" aria-label="车辆三轴运动示意">
+        <rect x="300" y="90" width="80" height="50" rx="10" fill="#16a085"/>
+        <text x="340" y="120" text-anchor="middle" fill="#fff" font-size="15" font-weight="bold">车</text>
+        <!-- 纵向：前后 -->
+        <line x1="340" y1="115" x2="500" y2="115" stroke="#d35400" stroke-width="3" marker-end="url(#arr)"/>
+        <line x1="340" y1="115" x2="180" y2="115" stroke="#d35400" stroke-width="3" marker-end="url(#arrL)"/>
+        <text x="520" y="119" fill="#d35400" font-size="13">纵向（加速/刹车）</text>
+        <!-- 横向：左右 -->
+        <line x1="340" y1="115" x2="340" y2="30" stroke="#2563eb" stroke-width="3" marker-end="url(#arr)"/>
+        <line x1="340" y1="115" x2="340" y2="200" stroke="#2563eb" stroke-width="3" marker-end="url(#arr)"/>
+        <text x="348" y="26" fill="#2563eb" font-size="13">横向（过弯）</text>
+        <!-- 垂直：上下 -->
+        <line x1="370" y1="115" x2="430" y2="60" stroke="#8e44ad" stroke-width="3" marker-end="url(#arr)"/>
+        <text x="438" y="58" fill="#8e44ad" font-size="13">垂直（颠簸）</text>
+        <!-- 横摆 -->
+        <path d="M 340 165 A 40 40 0 0 1 380 165" fill="none" stroke="#c0392b" stroke-width="2.5" marker-end="url(#arr)"/>
+        <text x="386" y="180" fill="#c0392b" font-size="13">横摆（转向角速度）</text>
+        <defs>
+          <marker id="arr" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#333"/></marker>
+          <marker id="arrL" markerWidth="10" markerHeight="10" refX="0" refY="3" orient="auto"><path d="M7,0 L0,3 L7,6 Z" fill="#333"/></marker>
+        </defs>
+      </svg>
+      <div class="caption">一张图记住四个"怎么动"：前后（纵向）、左右（横向）、上下（垂直）、绕竖轴转（横摆）。</div>
+    </div>
+
+    <hr/>
+
+    <h2 id="fields">字段：10 列，每一列对应一个物理问题</h2>
+    <p>无锡数据同样有表头、逗号分隔（注意首列 id 后带一个制表符，读取时要先清理）。10 个字段分两组：</p>
+
+    <h3>① 基础定位组（和前两城同构）</h3>
+    <ul class="field-list">
+      <li><span class="name">id</span><span class="desc">车辆/设备 ID。<small>注意：末尾带一个隐藏制表符，读数据要先 strip。</small></span><span class="example">0086627…</span></li>
+      <li><span class="name">经度 / 纬度</span><span class="desc">WGS-84 坐标。<small>无锡约 119.9°–120.6°E，31.2°–31.9°N。</small></span><span class="example">120.578, 31.806</span></li>
+      <li><span class="name">采集时间</span><span class="desc">完整时间戳 <code>YYYY-MM-DD HH:MM:SS</code>。<small>这次连日期都有，很省心。</small></span><span class="example">2020-07-18 08:00:00</span></li>
+    </ul>
+
+    <h3>② 惯性信号组（无锡独有，重点）</h3>
+    <ul class="field-list">
+      <li><span class="name">方向</span><span class="desc">航向/状态编码。<small>样本中只出现 0（停）与 121（行驶），更像状态码而非连续度数。</small></span><span class="example">0 / 121</span></li>
+      <li><span class="name">速度</span><span class="desc">瞬时速度 (km/h)。<small>静止车≈0，行驶车常≈80。</small></span><span class="example">0 / 80</span></li>
+      <li><span class="name">纵向加速度</span><span class="desc">沿车头方向的加减速 (m/s²)。<small>正=加速，负=刹车/滑行。静止车常见 -9（接近重力分量）。</small></span><span class="example">-9 / 1202</span></li>
+      <li><span class="name">横向加速度</span><span class="desc">过弯时产生的侧向力 (m/s²)。<small>越大=转弯越急，反映驾驶激进程度。</small></span><span class="example">0–3 / 315</span></li>
+      <li><span class="name">垂直加速度</span><span class="desc">上下颠簸 (m/s²)。<small>路面坑洼越大值越大，可做"路况平整度"评估。</small></span><span class="example">0–1 / 120</span></li>
+      <li><span class="name">横摆角速度</span><span class="desc">绕竖轴旋转速率 (°/s)。<small">正比于转向快慢，是识别"变道/转弯"的关键量。</small></span><span class="example">0 / 343</span></li>
+    </ul>
+
+    <div class="callout note">
+      <span class="icon">📌</span>
+      <div>
+        <strong>多出来的传感器量，能回答什么新问题？</strong>
+        <ul style="margin:.4em 0 0;">
+          <li><b>急刹/急加速识别</b>：纵向加速度绝对值突增 → 危险驾驶或突发状况</li>
+          <li><b>激进驾驶评分</b>：横向加速度、横摆角速度的频繁高值 → 司机驾驶风格</li>
+          <li><b>路况探测</b>：垂直加速度持续偏高 → 路段破损</li>
+        </ul>
+        这是北京（只有位置）和深圳（有载客/速度但无加速度）都做不到的。
+      </div>
+    </div>
+
+    <hr/>
+
+    <h2 id="signal">真实信号长什么样？先看"静止"的车</h2>
+    <p>
+      取一辆<b>静止</b>的车（速度≈0），把它的四个惯性通道按时间画出来。注意它们不是平线，
+      而是在 0 附近<b>小幅抖动</b>——这正是低速时传感器自身的本底噪声：
+    </p>
+    <figure class="figure">
+      <div class="frame"><img src="../assets/img/wuxi-signal-series.png" alt="无锡静止车辆惯性信号时序" /></div>
+      <figcaption><strong>真实数据</strong> · 无锡 2020-07-18 一辆静止车辆（id 0086627503167373）的连续 400 条记录。速度恒为 0，纵向加速度贴近 -9，横向/垂直/横摆通道呈低幅噪声——这是"车停着、传感器还在采样"的真实样子。</figcaption>
+    </figure>
+
+    <div class="why">
+      <span class="icon">💡</span>
+      <div>
+        <strong>这张图教你的第一件事：</strong>看真实传感器数据，先认得"噪声长什么样"。
+        只有当信号<b>明显超出本底噪声</b>（比如横摆角速度突然飙到几百、纵向加速度猛地正负跳变），
+        才代表发生了真实的加速、转弯或颠簸。否则那只是传感器在"呼吸"。
+      </div>
+    </div>
+
+    <hr/>
+
+    <h2 id="sample">真实样本：前 18 条记录（含两种"性格"）</h2>
+    <p>下面逐行来自仓库 <code>data/wuxi_sample.csv</code>（源自 <code>raw/wuxi/data/20200718.csv</code>）。
+    注意样本里混着两类车——<b>静止车</b>信号微弱、<b>行驶车</b>信号异常"整齐"：</p>
+
+    <div class="table-wrap">
+      <table data-page-size="18">
+        <thead><tr><th>采集时间</th><th>方向</th><th>速度</th><th>纵向加速度</th><th>横向加速度</th><th>垂直加速度</th><th>横摆角速度</th></tr></thead>
+        <tbody>
+          <tr><td>2020-07-18 08:00:00</td><td>0</td><td>0</td><td>-9</td><td>0</td><td>1</td><td>0</td></tr>
+          <tr><td>2020-07-18 08:00:00</td><td>0</td><td>15</td><td>-9</td><td>0</td><td>0</td><td>0</td></tr>
+          <tr><td>2020-07-18 08:00:00</td><td>121</td><td>80</td><td>1202</td><td>315</td><td>120</td><td>343</td></tr>
+          <tr><td>2020-07-18 08:00:00</td><td>121</td><td>80</td><td>1202</td><td>315</td><td>120</td><td>343</td></tr>
+          <tr><td>2020-07-18 08:00:00</td><td>0</td><td>10</td><td>-9</td><td>0</td><td>1</td><td>0</td></tr>
+          <tr><td>2020-07-18 08:00:00</td><td>121</td><td>80</td><td>1202</td><td>315</td><td>120</td><td>343</td></tr>
+          <tr><td>2020-07-18 08:00:00</td><td>121</td><td>80</td><td>1202</td><td>315</td><td>120</td><td>343</td></tr>
+          <tr><td>2020-07-18 08:00:01</td><td>121</td><td>80</td><td>1202</td><td>315</td><td>120</td><td>343</td></tr>
+          <tr><td>2020-07-18 08:00:01</td><td>0</td><td>0</td><td>-9</td><td>0</td><td>1</td><td>0</td></tr>
+          <tr><td>2020-07-18 08:00:01</td><td>121</td><td>80</td><td>1202</td><td>315</td><td>120</td><td>343</td></tr>
+          <tr><td>2020-07-18 08:00:01</td><td>0</td><td>18</td><td>-9</td><td>0</td><td>1</td><td>0</td></tr>
+          <tr><td>2020-07-18 08:00:01</td><td>0</td><td>15</td><td>-9</td><td>0</td><td>2</td><td>0</td></tr>
+          <tr><td>2020-07-18 08:00:01</td><td>121</td><td>80</td><td>1202</td><td>315</td><td>120</td><td>343</td></tr>
+          <tr><td>2020-07-18 08:00:01</td><td>0</td><td>0</td><td>-9</td><td>1</td><td>0</td><td>0</td></tr>
+          <tr><td>2020-07-18 08:00:01</td><td>0</td><td>0</td><td>-9</td><td>0</td><td>3</td><td>0</td></tr>
+          <tr><td>2020-07-18 08:00:01</td><td>121</td><td>80</td><td>1202</td><td>315</td><td>120</td><td>343</td></tr>
+          <tr><td>2020-07-18 08:00:01</td><td>121</td><td>80</td><td>1202</td><td>315</td><td>120</td><td>343</td></tr>
+          <tr><td>2020-07-18 08:00:01</td><td>121</td><td>80</td><td>1202</td><td>315</td><td>120</td><td>343</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout warn">
+      <span class="icon">⚠️</span>
+      <div>
+        <strong>读这张表会发现一个大问题：</strong>所有"行驶中"的车（方向=121），
+        五个传感器值<b>分毫不差地相同</b>（速度 80、纵向 1202、横向 315、垂直 120、横摆 343），
+        而且跨几千辆车都一模一样。真实世界里不可能每辆车以完全相同的姿态行驶——
+        这几乎可以断定是<b>默认填充值/占位常量</b>，<b>不是真实逐条传感器测量</b>。
+        所以这份数据的"9 维惯性信号"对<b>行驶段并不可信</b>，只有静止/低速段的微弱起伏相对可信。
+        这是用无锡数据做驾驶行为分析前，必须先记在心里的一条警告。
+      </div>
+    </div>
+
+    <hr/>
+
+    <h2 id="careful">仔细看：三处"名不副实"</h2>
+    <p>无锡数据标签写着"无锡"，但仔细读会发现它比标签大得多、也乱得多：</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>现象</th><th>真实表现</th><th>带来的提醒</th></tr></thead>
+        <tbody>
+          <tr><td>范围远超无锡</td><td>抽样中 11.7% 的点落在 112°–122°E、23°–39°N——遍布大半个中国</td><td>这不是"无锡市"数据，更像全国浮动车探针；画无锡地图前务必按边界裁剪</td></tr>
+          <tr><td>行驶段信号是常量</td><td>方向=121 时五个传感器值全为 1202/315/120/343</td><td>行驶段的惯性数据不可信，别拿它算急刹/过弯</td></tr>
+          <tr><td>时间标签打架</td><td>文件夹/数据写 2020-07-18，但仓库 README 写"2022 年"</td><td>元数据与数据本身不一致，以数据内的时间戳为准</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="concept">
+      <span class="icon">🧭</span>
+      <div>
+        <strong>方法论小结：标签是会骗人的</strong>
+        <p>三份数据里，无锡最典型地说明了"数据集的名字 ≠ 数据的真实边界"。
+        真正的分析师不会相信文件夹名，而是<b>用坐标范围、字段取值分布去反推"这份数据到底覆盖什么、哪些能用"</b>。
+        这一步叫<b>数据画像（profiling）</b>，永远在分析之前做。</p>
+      </div>
+    </div>
+
+    <hr/>
+
+    <h2 id="vs">三城对照：一份比一份"重"</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>维度</th><th>北京 2008</th><th>深圳 2014</th><th>无锡</th></tr></thead>
+        <tbody>
+          <tr><td>能答的问题</td><td>空间分布/聚类</td><td>+ 载客/拥堵</td><td>+ 驾驶行为/路况</td></tr>
+          <tr><td>传感器</td><td>仅 GPS</td><td>GPS + 速度</td><td>GPS + 6 维 IMU</td></tr>
+          <tr><td>最大陷阱</td><td>无载客/速度</td><td>越界坐标</td><td>行驶段信号为常量、范围跨省</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2 id="next">无锡数据适合做什么（谨慎地）</h2>
+    <ul>
+      <li><strong>低速/驻车行为</strong>：用静止段信号研究上下客停留、热停点。</li>
+      <li><strong>空间覆盖研究</strong>：既然它其实是全国探针，可研究跨城路网连通性（先裁剪）。</li>
+      <li><strong>作为"反面教材"</strong>：教大家如何做数据画像、识别占位常量与标签失真。</li>
+    </ul>
+
+    <div style="display:flex;gap:12px;flex-wrap:wrap;margin:30px 0;">
+      <a class="btn ghost" href="./shenzhen.html">← 上一个数据集：深圳</a>
+      <a class="btn" href="../analysis/overview.html">进入跨城分析 →</a>
+    </div>
+
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="container"><div class="row">
+    <div>出租车轨迹数据分析 · 从 GPS 到分析</div>
+    <div>数据归各自来源所有 · 代码 MIT</div>
+  </div></div>
+</footer>
+
+<button class="to-top" aria-label="返回顶部">↑</button>
+<script src="../assets/js/main.js"></script>
+</body>
+</html>

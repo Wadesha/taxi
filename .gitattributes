@@ -1,0 +1,11 @@
+# 统一换行符，避免 Windows / macOS / Linux 差异导致的无意义 diff
+* text=auto eol=lf
+
+# 二进制资源不归一化、不 diff
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.zip binary
+*.rar binary

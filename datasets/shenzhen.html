@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>深圳 2014 · 数据集</title>
+<meta name="description" content="深圳出租车轨迹数据集详解：载客状态字段、空车/载客空间对比、速度分布、真实样本与数据质量观察。" />
+<link rel="stylesheet" href="../assets/css/style.css" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23d35400'/%3E%3Ctext x='16' y='22' font-size='18' text-anchor='middle' fill='white' font-family='Arial' font-weight='bold'%3E深%3C/text%3E%3C/svg%3E" />
+</head>
+<body>
+
+<header class="site-header">
+  <div class="container">
+    <nav class="nav" aria-label="主导航">
+      <a class="brand" href="../index.html"><span class="brand-mark" aria-hidden="true"></span><span>轨迹数据分析</span></a>
+      <div class="nav-links">
+        <a href="../index.html">主页</a>
+        <a href="../guide/gps.html">基础概念</a>
+        <a href="../index.html#datasets">数据集</a>
+        <a href="../analysis/overview.html">分析</a>
+        <a href="../methodology/pipeline.html">方法</a>
+      </div>
+      <button class="theme-toggle" aria-label="切换主题">☾</button>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="container">
+
+    <div class="crumbs">
+      <a href="../index.html">主页</a><span class="sep">/</span>
+      <a href="../index.html#datasets">数据集</a><span class="sep">/</span>
+      <span>深圳 2014</span>
+    </div>
+
+    <span class="section-eyebrow" style="color:var(--shenzhen);">数据集 · Shenzhen 2014</span>
+    <h1>深圳：最"聪明"的一份数据</h1>
+    <p style="max-width:800px;">
+      如果说北京 T-Drive 是"<b>够用就好</b>"的极简数据，那深圳 2014 就是一份"<b>信息密集</b>"的数据：
+      它在每条记录里额外塞进了两个北京没有的字段——<b>是否载客（passenger）</b>和
+      <b>瞬时速度（speed）</b>。就因为多了这两列，这份数据能回答北京回答不了的问题：
+      <b>这辆车是在空车巡游找客，还是在载客赚钱？它开得有多快？</b>
+    </p>
+    <p style="max-width:800px;">
+      数据是 <strong>2014-10-22 当天</strong>的深圳，被切成 24 个"<code>0_时.csv</code> ~ <code>23_时.csv</code>"的小时文件，
+      整份约 <strong>4,700 万行</strong>。下面我们先用真实数据看它长什么样。
+    </p>
+
+    <div class="grid grid-4">
+      <div class="stat-card"><div class="label">记录总数</div><div class="value">≈4700<span class="unit">万</span></div><div class="hint">24 个文件 × 约 195 万/时</div></div>
+      <div class="stat-card"><div class="label">采样间隔</div><div class="value">~90<span class="unit">秒</span></div><div class="hint">比北京密 6 倍多</div></div>
+      <div class="stat-card"><div class="label">字段数</div><div class="value">6</div><div class="hint">多了 载客 + 速度</div></div>
+      <div class="stat-card"><div class="label">独有能力</div><div class="value">载客/速度</div><div class="hint">北京做不了的分析</div></div>
+    </div>
+
+    <hr/>
+
+    <h2 id="fields">字段：在"谁/何时/在哪"上多了两列</h2>
+    <p>深圳数据有表头，每行 6 个字段、逗号分隔。前面 4 列和北京同构，后面两列是新东西：</p>
+    <ul class="field-list">
+      <li><span class="name">trajectory_id</span><span class="desc">车辆/轨迹 ID。<small>作用：把一行行记录连成一辆车。</small></span><span class="example">22223</span></li>
+      <li><span class="name">date</span><span class="desc">当日时间 <code>HH:MM:SS</code>。<small>只有时分秒，没有日期——日期藏在文件名里（哪一时.csv）。</small></span><span class="example">12:25:29</span></li>
+      <li><span class="name">lon / lat</span><span class="desc">经度 / 纬度 (WGS-84)。<small>深圳范围约 113.8°–114.6°E，22.4°–22.9°N。</small></span><span class="example">114.1268, 22.5740</span></li>
+      <li><span class="name">passenger</span><span class="desc"><b>是否载客</b>：0=空车，1=载客。<small>这是北京没有的"运营状态"信号，是这份数据的灵魂字段。</small></span><span class="example">1</span></li>
+      <li><span class="name">speed(km/h)</span><span class="desc"><b>瞬时速度</b>（km/h）。<small>直接给出，不用自己算；0 表示停着。</small></span><span class="example">19</span></li>
+    </ul>
+
+    <div class="callout note">
+      <span class="icon">📌</span>
+      <div>
+        <strong>多出来的两列，打开了哪些分析？</strong>
+        <ul style="margin:.4em 0 0;">
+          <li><code>passenger</code> → <b>空车/载客空间分布</b>、上下客热点、供需缺口（哪空车多却没客）</li>
+          <li><code>speed</code> → <b>路网速度画像</b>、拥堵识别（速度≈0 的密集区）、驾驶行为</li>
+        </ul>
+      </div>
+    </div>
+
+    <hr/>
+
+    <h2 id="load">空车 vs 载客：城市在"找活"还是"赚钱"？</h2>
+    <p>
+      把 12 点这一个小时、约 40 万条真实记录按 <code>passenger</code> 分成两组，分别画成空间密度图
+      （颜色越亮 = 车越多）。一个问题立刻有了画面：<b>空车和载客的车，分别爱待在哪？</b>
+    </p>
+    <figure class="figure">
+      <div class="frame"><img src="../assets/img/shenzhen-load-compare.png" alt="深圳空车与载客空间分布对比" /></div>
+      <figcaption><strong>真实数据</strong> · 深圳 2014-10-22 12:00 切片、约 40 万条采样。左：空车（巡游寻客）；右：载客（运营中）。空车明显更集中在城区核心——它们在"扫街"等单。</figcaption>
+    </figure>
+
+    <div class="why">
+      <span class="icon">💡</span>
+      <div>
+        <strong>这张图回答的真实问题：</strong>"出租车司机把时间花在哪了？"
+        答案浮现得很直观——<b>空车扎堆在市中心</b>（竞争最激烈、但单子也最多），而载客车散得更开。
+        把这种分布按小时、按区叠加，就能算出每区的"空驶率"，指导调度。
+      </div>
+    </div>
+
+    <div class="concept">
+      <span class="icon">🧭</span>
+      <div>
+        <strong>小知识：什么是"空驶率"？</strong>
+        <p>空驶率 = 空车记录数 ÷ 总记录数。它衡量"车在空跑没拉客"的比例。
+        在我们抽样的 12 点切片里，空车占 <b>60.1%</b>、载客占 <b>39.9%</b>——
+        也就是说中午这个时段，路上六成出租车是空着找客的。注意这只是<b>单小时快照</b>，早晚高峰的载客比例通常会更高。</p>
+      </div>
+    </div>
+
+    <hr/>
+
+    <h2 id="speed">速度分布：为什么一半的车"不动"？</h2>
+    <p>
+      再看 <code>speed</code> 这一列。把 12 点切片 40 万条记录的速度画成直方图，会看到一个很反直觉的形状：
+    </p>
+    <figure class="figure">
+      <div class="frame"><img src="../assets/img/shenzhen-speed-dist.png" alt="深圳出租车瞬时速度分布" /></div>
+      <figcaption><strong>真实数据</strong> · 深圳 12:00 切片 40 万条采样的速度分布。左端有一个极高的"零速峰"（约 42% 的记录速度为 0），其余呈长尾向右拖到 120 km/h。</figcaption>
+    </figure>
+
+    <div class="concept">
+      <span class="icon">🧭</span>
+      <div>
+        <strong>观察：一个被"压扁"的分布</strong>
+        <p>中位数只有 <b>8 km/h</b>，但均值 <b>19.3 km/h</b>——两者差很多，说明速度不是对称分布，而是<b>双峰/偏态</b>的：
+        一大群车停在 <b>0 km/h</b>（等红灯、堵车、上客、路口待客），另一群在 30–80 km/h 正常行驶。
+        这 42% 的"零速"不是坏数据，而是城市交通的真实呼吸节奏。
+        把零速点密集的地方标出来，<b>本身就是拥堵热力图</b>。</p>
+      </div>
+    </div>
+
+    <hr/>
+
+    <h2 id="sample">真实样本：一辆车（22223）的 30 条记录</h2>
+    <p>下面逐行来自仓库 <code>data/shenzhen_sample.csv</code>（源自 <code>raw/shenzhen/...</code> 真实切片）。
+    注意同一辆车 <code>passenger</code> 在 0/1 之间跳变、<code>speed</code> 也在 0–84 之间起伏——这正是运营的真实节奏：</p>
+
+    <div class="table-wrap">
+      <table data-page-size="15">
+        <thead><tr><th>trajectory_id</th><th>date</th><th>lon</th><th>lat</th><th>passenger</th><th>speed(km/h)</th></tr></thead>
+        <tbody>
+          <tr><td>22223</td><td>12:25:29</td><td>114.126831</td><td>22.574051</td><td>1</td><td>19</td></tr>
+          <tr><td>22223</td><td>12:26:59</td><td>114.124153</td><td>22.574183</td><td>1</td><td>19</td></tr>
+          <tr><td>22223</td><td>12:16:39</td><td>114.119865</td><td>22.568617</td><td>1</td><td>62</td></tr>
+          <tr><td>22223</td><td>12:08:43</td><td>114.116837</td><td>22.550283</td><td>1</td><td>21</td></tr>
+          <tr><td>22223</td><td>12:30:22</td><td>114.108932</td><td>22.576283</td><td>1</td><td>38</td></tr>
+          <tr><td>22223</td><td>12:52:35</td><td>114.094185</td><td>22.543400</td><td>1</td><td>69</td></tr>
+          <tr><td>22223</td><td>12:38:04</td><td>114.079803</td><td>22.572884</td><td>1</td><td>48</td></tr>
+          <tr><td>22223</td><td>12:00:45</td><td>114.095398</td><td>22.540466</td><td>0</td><td>3</td></tr>
+          <tr><td>22223</td><td>12:03:29</td><td>114.101982</td><td>22.541950</td><td>1</td><td>22</td></tr>
+          <tr><td>22223</td><td>12:30:28</td><td>114.108398</td><td>22.575968</td><td>1</td><td>35</td></tr>
+          <tr><td>22223</td><td>12:30:07</td><td>114.109497</td><td>22.576584</td><td>1</td><td>6</td></tr>
+          <tr><td>22223</td><td>12:29:55</td><td>114.110130</td><td>22.576700</td><td>1</td><td>45</td></tr>
+          <tr><td>22223</td><td>12:18:33</td><td>114.122902</td><td>22.571083</td><td>1</td><td>0</td></tr>
+          <tr><td>22223</td><td>12:21:41</td><td>114.123650</td><td>22.576500</td><td>0</td><td>35</td></tr>
+          <tr><td>22223</td><td>12:22:25</td><td>114.126999</td><td>22.575768</td><td>0</td><td>28</td></tr>
+          <tr><td>22223</td><td>12:40:46</td><td>114.067665</td><td>22.558216</td><td>1</td><td>84</td></tr>
+          <tr><td>22223</td><td>12:46:49</td><td>114.067902</td><td>22.546734</td><td>0</td><td>45</td></tr>
+          <tr><td>22223</td><td>12:48:19</td><td>114.072815</td><td>22.542850</td><td>0</td><td>34</td></tr>
+          <tr><td>22223</td><td>12:48:44</td><td>114.075516</td><td>22.542933</td><td>0</td><td>44</td></tr>
+          <tr><td>22223</td><td>12:37:49</td><td>114.081467</td><td>22.572468</td><td>1</td><td>40</td></tr>
+          <tr><td>22223</td><td>12:37:42</td><td>114.082130</td><td>22.572283</td><td>1</td><td>43</td></tr>
+          <tr><td>22223</td><td>12:47:19</td><td>114.068871</td><td>22.543034</td><td>0</td><td>56</td></tr>
+          <tr><td>22223</td><td>12:41:44</td><td>114.067764</td><td>22.548283</td><td>1</td><td>82</td></tr>
+          <tr><td>22223</td><td>12:44:19</td><td>114.063553</td><td>22.547533</td><td>0</td><td>25</td></tr>
+          <tr><td>22223</td><td>12:25:14</td><td>114.127380</td><td>22.574533</td><td>1</td><td>21</td></tr>
+          <tr><td>22223</td><td>12:17:33</td><td>114.122353</td><td>22.570833</td><td>1</td><td>25</td></tr>
+          <tr><td>22223</td><td>12:11:51</td><td>114.119164</td><td>22.559151</td><td>1</td><td>55</td></tr>
+          <tr><td>22223</td><td>12:08:34</td><td>114.116669</td><td>22.549351</td><td>1</td><td>56</td></tr>
+          <tr><td>22223</td><td>12:53:20</td><td>114.098953</td><td>22.543400</td><td>1</td><td>0</td></tr>
+          <tr><td>22223</td><td>12:00:00</td><td>114.094986</td><td>22.541451</td><td>0</td><td>13</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout note">
+      <span class="icon">📌</span>
+      <div>
+        <strong>在这 30 行里能读出的真实细节：</strong>
+        ① 载客时速度可以很高（84、82 km/h=在主干道飞驰），空车时反而常是 25–56 km/h 的"慢巡游"；
+        ② 有 <code>speed=0</code> 但 <code>passenger=1</code> 的（如 12:18:33）——说明乘客在车上、车却停着（等红灯/堵车）；
+        ③ <code>date</code> 字段没有日期，必须<b>结合文件名</b>才完整——这是用这份数据第一个要小心的坑。
+      </div>
+    </div>
+
+    <hr/>
+
+    <h2 id="careful">仔细看：这份"完美"数据也有裂缝</h2>
+    <p>一份好数据不代表没有脏点。我们在 40 万条采样里发现两类值得警惕的现象，处理前必须知道：</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>现象</th><th>真实表现</th><th>意味着什么</th></tr></thead>
+        <tbody>
+          <tr><td>越界坐标</td><td>经度最大到 119.5°E、纬度到 23.1°N——超出了深圳行政边界</td><td>GPS 漂移或邻近城市（东莞/惠州/香港）的车被并入；画深圳地图前要先按边界裁剪</td></tr>
+          <tr><td>速度异常</td><td>个别记录速度达 120 km/h</td><td>市区不可能，多为高速公路或定位跳变；做拥堵分析时要过滤极端值</td></tr>
+          <tr><td>时间字段缺日期</td><td><code>date</code> 只有时分秒</td><td>跨文件拼接时必须用文件名补上"哪一天/哪一小时"，否则时间轴错乱</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout warn">
+      <span class="icon">⚠️</span>
+      <div>
+        <strong>数据清洗 checklist（写代码前先想清楚）：</strong>
+        ① 按深圳边界框（约 113.7°–114.6°E，22.4°–22.9°N）裁剪越界点；
+        ② 把 <code>speed</code> 超过合理上限（如 120 km/h）的记为异常；
+        ③ 用文件名补全每条记录的真实时间戳；
+        ④ 按 <code>trajectory_id</code> + 时间排序，才能算每辆车的连续轨迹与行程。
+      </div>
+    </div>
+
+    <hr/>
+
+    <h2 id="vs">它和北京有什么不同？</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>维度</th><th>北京 T-Drive 2008</th><th>深圳 2014</th><th>差异带来的能力</th></tr></thead>
+        <tbody>
+          <tr><td>采样间隔</td><td>~10 分钟</td><td>~90 秒</td><td>深圳能看"走走停停"的细节</td></tr>
+          <tr><td>载客状态</td><td>无</td><td>有（passenger）</td><td>深圳能做空驶率/供需分析</td></tr>
+          <tr><td>速度</td><td>需自己算</td><td>直接给</td><td>深圳直接做拥堵画像</td></tr>
+          <tr><td>规模</td><td>1 万辆车/周</td><td>单日约 4700 万行</td><td>深圳更密，但单日、无跨天</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div style="display:flex;gap:12px;flex-wrap:wrap;margin:30px 0;">
+      <a class="btn ghost" href="./beijing.html">← 上一个数据集：北京</a>
+      <a class="btn" href="./wuxi.html">下一个数据集：无锡 →</a>
+    </div>
+
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="container"><div class="row">
+    <div>出租车轨迹数据分析 · 从 GPS 到分析</div>
+    <div>数据归各自来源所有 · 代码 MIT</div>
+  </div></div>
+</footer>
+
+<button class="to-top" aria-label="返回顶部">↑</button>
+<script src="../assets/js/main.js"></script>
+</body>
+</html>

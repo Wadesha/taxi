@@ -1,0 +1,74 @@
+[
+  {
+    "file": "sim_comprehensive.csv",
+    "title": "全面(真实参照)",
+    "desc": "字段完整：id/时间/经纬度/载客/速度/航向，无明显缺陷。北京 T-Drive + 深圳 2014 属此类。",
+    "impact": "正常数据几乎零缺陷；用它对照下面各种'毛病'。"
+  },
+  {
+    "file": "sim_minimal.csv",
+    "title": "仅位置(最小字段)",
+    "desc": "只有 id/时间/经纬度，没有载客/速度/航向。北京 T-Drive 原始释放即如此。",
+    "impact": "能做的分析受限：只能看轨迹形状，无法算 OD/速度/载客率。"
+  },
+  {
+    "file": "sim_missing.csv",
+    "title": "缺失坐标",
+    "desc": "部分行经纬度为空（GPS 信号丢失/解析失败）。",
+    "impact": "缺失点会让轨迹'断线'，需插值或丢弃该段。占比越高越难修复。"
+  },
+  {
+    "file": "sim_out_of_range.csv",
+    "title": "越界坐标",
+    "desc": "经纬度超出合理范围（lat>90、lon 跑到上千、或跨省漂移）。无锡数据实测约 11.7% 跨省份越界。",
+    "impact": "越界点多为坐标系统错误或漂移，应直接剔除，否则会把轨迹画到非洲/海里。"
+  },
+  {
+    "file": "sim_constant_sensor.csv",
+    "title": "常量传感器(占位)",
+    "desc": "行驶状态下 5 个 IMU 字段恒为同一常数（如 1202/315/120/343）。无锡实测 78% 行驶行如此。",
+    "impact": "IMU 列实际是无用垃圾；经纬度/速度仍有效，但别拿 IMU 做加速度分析。"
+  },
+  {
+    "file": "sim_zero_speed.csv",
+    "title": "零速主导",
+    "desc": "绝大多数点 speed=0（长时间停靠/熄火），行驶点稀疏。",
+    "impact": "行驶样本太少，速度/载客分析不可靠；适合只研究'停泊点'。"
+  },
+  {
+    "file": "sim_sparse.csv",
+    "title": "稀疏采样",
+    "desc": "采样间隔极大（分钟级），点间直线连接会严重偏离真实道路。",
+    "impact": "轨迹形状失真，只能看大致方向，不能做精细路径/速度分析。"
+  },
+  {
+    "file": "sim_mixed_delim.csv",
+    "title": "混合分隔符",
+    "desc": "首列 id 后跟制表符 \\t，其余字段用逗号。无锡原始 CSV 即如此，普通 csv.reader 会解析失败。",
+    "impact": "解析时须先 split(',') 再 strip 首字段尾随 tab，否则整行错列。"
+  },
+  {
+    "file": "sim_timestamp_chaos.csv",
+    "title": "时间戳混乱",
+    "desc": "时间格式不统一：ISO、美式、Unix 秒、斜杠式混用。",
+    "impact": "必须统一解析为 datetime 才能算时长/速度；格式识别错误会导致时间倒流。"
+  },
+  {
+    "file": "sim_dup_points.csv",
+    "title": "重复点",
+    "desc": "同一位置连续多条完全相同记录（GPS 静止时高频 ping）。北京实测约 8% 是此类。",
+    "impact": "无损可删：去重后轨迹不变，体积还能小一点。"
+  },
+  {
+    "file": "sim_passenger_missing.csv",
+    "title": "载客状态缺失",
+    "desc": "passenger 字段空白或异常，无法区分空车/载客。",
+    "impact": "载客率算不出；OD/热点分析可信度下降。"
+  },
+  {
+    "file": "sim_cross_midnight.csv",
+    "title": "跨日轨迹",
+    "desc": "轨迹跨越午夜，按「日」切分时会把一条连续行程拦腰截断。",
+    "impact": "按自然日聚合前要先做「行程连续性」判断，否则跨日行程被拆碎。"
+  }
+]
