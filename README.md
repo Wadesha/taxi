@@ -24,11 +24,13 @@
 ├── index.html                  # 主页：总览 + 4 步学习路径
 ├── guide/                      # 📖 基础概念
 │   ├── gps.html                # GPS 与经纬度
+│   ├── sensing.html            # 数据是怎么被采集的（GNSS 原理/误差/上报链路/隐私）
 │   └── trajectory.html         # 轨迹数据与字段
 ├── datasets/                   # 🗂️ 数据集详情
 │   ├── beijing.html            # 北京 T-Drive 2008
 │   ├── shenzhen.html           # 深圳 2014
 │   ├── wuxi.html               # 无锡（含惯性信号与数据质量观察）
+│   ├── taxonomy.html           # 🧭 交通时空数据家族图鉴（六类框架 + 17 种典型数据集）
 │   └── simulation.html         # 🧪 模拟数据集图鉴（12 种数据质量问题演示）
 ├── analysis/                   # 🔬 分析方法与结果
 │   ├── overview.html           # 跨城综合对比
@@ -46,7 +48,8 @@
 │   ├── summary.json            # 三城字段与规模概要
 │   ├── 三城 50 行真实样本 CSV
 │   ├── SAMPLES.md              # 样本说明与再生成方式
-│   └── sim/                    # 🧪 12 个模拟数据集 CSV + manifest.json
+│   └── sim/                    # 🧪 12 个质量模拟 CSV + manifest.json
+│       └── modes/              # 🧭 17 个家族模拟 CSV + manifest_modes.json（六类交通数据）
 ├── scripts/                    # Python 可复现脚本
 │   ├── extract_rar.py          # 解压北京 RAR
 │   ├── visualize_taxi_data.py  # 原始综合可视化
@@ -54,6 +57,8 @@
 │   ├── make_samples.py         # 从全量数据生成样本
 │   ├── make_sim_datasets.py    # 生成 12 个模拟数据集
 │   ├── build_simulation_page.py# 构建模拟数据集图鉴页
+│   ├── make_mode_datasets.py   # 生成 17 个跨模态交通数据集（A~F 六类）
+│   ├── build_taxonomy_page.py  # 构建交通数据家族图鉴页
 │   ├── restructure_archive.py  # 全量数据重组/分片
 │   └── analyze_cleanable.py    # 可清理数据量化分析
 ├── raw/                        # ⚠️ 原始大数据（已迁归档仓库 taxi-archive*，.gitignore 排除）
@@ -61,7 +66,17 @@
 └── README.md
 ```
 
-## 🧪 模拟数据集图鉴（重要）
+## 🧭 交通数据家族图鉴（重要）
+
+`datasets/taxonomy.html` 把「出租车 GPS」放回它的大家庭：交通时空数据可分成 **六类（A~F）**——
+A 连续点轨迹 / B 行程起止 / C 刷卡事件 / D 断面检测 / E 聚合衍生 / F 其他模态与粗定位。
+页面用 **17 个模拟数据集**（`data/sim/modes/*.csv`）覆盖六类典型情况（出租车、网约车、公交、货车、共享单车、
+有桩单车、计价器、地铁 AFC、公交刷卡、线圈、卡口、ETC、速度指数、网格 OD、船舶 AIS、手机信令……），
+每张卡给出：载体 / 结构 / 粒度 → 能回答 → 不能回答 → 典型陷阱 → 字段 → 真实参照 → 样本 → CSV 下载。
+另附六维分类框架图、「同一次出行六类痕迹」对比图、采样间隔谱与空间精度谱，以及 17 行大对照表。
+配套 `guide/sensing.html` 讲清底层采集原理：GNSS 定位、四类误差源、车载上报链路、采样间隔决定分析能力、五种定位技术、坐标偏移、隐私脱敏四层级。
+
+## 🧪 模拟数据集图鉴
 
 `datasets/simulation.html` 用 **12 个小型模拟数据集**（`data/sim/*.csv`）逐一演示 GPS/出租车轨迹数据
 **所有可能出问题的情况**：仅位置、缺失坐标、越界坐标、常量传感器（IMU 占位）、零速主导、稀疏采样、

@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>交通时空数据家族 · 六类与 17 种典型数据集</title>
+<meta name="description" content="出租车 GPS 只是交通时空数据这一大类里较全面的一种。本页用六维分类框架 + 17 个模拟数据集，把出租车、网约车、公交、单车、地铁、卡口、AIS、手机信令等典型交通数据的结构、能回答/不能回答的问题、典型陷阱与真实参照一次讲清。" />
+<link rel="stylesheet" href="../assets/css/style.css" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%237c3aed'/%3E%3Ctext x='16' y='22' font-size='18' text-anchor='middle' fill='white' font-family='Arial' font-weight='bold'%3E%E2%9A%99%3C/text%3E%3C/svg%3E" />
+
+<style>
+.tax-gridwrap{display:grid;grid-template-columns:1fr;gap:18px;margin-top:10px}
+.cat-block h3 .en{font-weight:400;font-size:.8em;color:var(--text-muted)}
+.cat-desc{color:var(--text-soft)}
+.tax-card{border:1px solid var(--border);border-radius:14px;padding:16px 18px;background:var(--card);margin-bottom:4px}
+.tax-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.tax-head h4{margin:0;font-size:1.02rem}
+.tax-meta{display:flex;flex-wrap:wrap;gap:6px 14px;margin:8px 0;font-size:.82rem;color:var(--text-soft)}
+.tax-meta b{color:var(--text)}
+.tax-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:8px 0}
+.tax-grid .can,.tax-grid .cannot{padding:8px 10px;border-radius:10px;font-size:.85rem}
+.tax-grid .can{background:color-mix(in srgb,var(--wuxi) 12%,transparent)}
+.tax-grid .cannot{background:color-mix(in srgb,var(--beijing) 10%,transparent)}
+.tax-grid p{margin:4px 0 0}
+.pit{font-size:.86rem;margin:8px 0 4px}
+.fields{font-size:.8rem;color:var(--text-soft);margin:4px 0}
+.ref{font-size:.82rem;color:var(--text-soft);margin:4px 0 10px}
+.dl{font-size:.78rem;padding:4px 10px;border:1px solid var(--border);border-radius:8px;color:var(--accent);text-decoration:none;white-space:nowrap}
+.sample{font-size:.74rem}
+.sample td,.sample th{white-space:nowrap;padding:3px 7px}
+.cap{font-size:.74rem;color:var(--text-muted);margin-top:6px}
+.svg-wrap{border:1px solid var(--border);border-radius:12px;background:var(--bg-elev);padding:10px}
+.bigtable{font-size:.8rem}
+.bigtable td,.bigtable th{vertical-align:top;padding:6px 9px}
+.bigtable .dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px}
+.muted{color:var(--text-muted)}
+.miss{color:#ef4444;font-weight:bold}
+.chart-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px;margin:14px 0}
+.chart-row figure{margin:0}
+.chart-row img{width:100%;border:1px solid var(--border);border-radius:10px}
+.chart-row figcaption{font-size:.78rem;color:var(--text-soft);text-align:center;margin-top:4px}
+.callout.note,.why{border-left:3px solid var(--guide);background:var(--bg-muted);padding:12px 14px;border-radius:8px;margin:14px 0}
+.why{display:flex;gap:10px;align-items:flex-start}
+.why .icon{font-size:1.2rem}
+.btn{display:inline-block;padding:8px 16px;border-radius:10px;background:var(--accent);color:#fff;font-weight:600}
+.btn.ghost{background:transparent;border:1px solid var(--border);color:var(--accent)}
+</style>
+</head>
+<body>
+<header class="site-header"><div class="container">
+  <nav class="nav" aria-label="主导航">
+    <a class="brand" href="../index.html"><span class="brand-mark" aria-hidden="true"></span><span>轨迹数据分析</span></a>
+    <div class="nav-links">
+      <a href="../index.html">主页</a>
+      <a href="../guide/gps.html">基础概念</a>
+      <a href="../index.html#datasets">数据集</a>
+      <a href="../analysis/overview.html">分析</a>
+      <a href="../methodology/pipeline.html">方法</a>
+    </div>
+    <button class="theme-toggle" aria-label="切换主题">☾</button>
+  </nav>
+</div></header>
+
+<main><div class="container-narrow">
+  <div class="crumbs">
+    <a href="../index.html">主页</a><span class="sep">/</span>
+    <a href="../index.html#datasets">数据集</a><span class="sep">/</span>
+    <span>交通时空数据家族</span>
+  </div>
+
+  <span class="section-eyebrow" style="color:var(--guide);">数据集 · 家族图鉴</span>
+  <h1>交通时空数据家族：不止出租车</h1>
+  <p>
+    你手里的北京、深圳、无锡出租车数据非常好，但它们只是<b>「交通时空数据」这一大类里<b>比较全面</b>的一种</b>——
+    属于「A 连续点轨迹」里的「出租车」这一个分支。现实里还有网约车、公交、共享单车、地铁刷卡、卡口、ETC、
+    船舶 AIS、手机信令……它们长得完全不一样，能回答的问题也天差地别。
+  </p>
+  <p>
+    这一页做三件事：① 用<b>六维分类框架</b>把整个家族铺开；② 用<b>一张对比图</b>说明同一次出行在不同数据里留下什么痕迹；
+    ③ 用 <b>17 个模拟数据集</b>（覆盖六类）逐一告诉你：它长什么样、<b>能回答什么、不能回答什么、有什么典型陷阱</b>、对标哪个真实数据集。
+    把它当成你接任何一份新交通数据前的「选型和避坑手册」。
+  </p>
+
+  <div class="callout note">
+    <span class="icon">🧭</span>
+    <div><b>怎么读这页：</b>先记住六类（A~F）的<strong>结构差异</strong>，再看 17 张卡片里每类的「能回答 / 不能回答」——
+    这两个字段决定了一份数据<strong>到底能做什么分析</strong>。同一座城市，换了数据源，能做的题目可能从「路径还原」直接掉到「只有断面流量」。</div>
+  </div>
+
+  <hr/>
+  <h2>一、六维分类框架</h2>
+  <p class="muted">按「数据是怎么产生的」分成六类。出租车 GPS 占 A 类一格；其余五类与出租车思路完全不同。</p>
+  <svg viewBox="0 0 920 235" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="六维分类框架"><g transform="translate(20,20)"><rect x="0" y="0" width="280" height="92" rx="12" fill="#fff" stroke="#2563eb" stroke-width="1.5"/><rect x="0" y="0" width="8" height="92" rx="4" fill="#2563eb"/><text x="20" y="24" font-size="13" font-weight="bold" fill="#2563eb">A · 连续点轨迹</text><text x="20" y="40" font-size="9.5" fill="#8794a6">Continuous point trajectories</text><text x="20" y="58" font-size="10" fill="#4a5568">车载/手持终端<b>逐点上报</b>：每个时刻一个坐标点，串起来就是轨迹。</text><text x="20" y="80" font-size="9.5" fill="#7b8794">例：巡游出租车、网约车（平台派单）、常规公交、营运货车（部标北斗终端）、共享电单车 </text></g><g transform="translate(320,20)"><rect x="0" y="0" width="280" height="92" rx="12" fill="#fff" stroke="#16a085" stroke-width="1.5"/><rect x="0" y="0" width="8" height="92" rx="4" fill="#16a085"/><text x="20" y="24" font-size="13" font-weight="bold" fill="#16a085">B · 行程起止记录</text><text x="20" y="40" font-size="9.5" fill="#8794a6">OD / trip records</text><text x="20" y="58" font-size="10" fill="#4a5568">只有<b>起点和终点</b>（OD），中间轨迹根本不存在。</text><text x="20" y="80" font-size="9.5" fill="#7b8794">例：无桩共享单车、有桩公共自行车、巡游出租车（计价器/发票系统）</text></g><g transform="translate(620,20)"><rect x="0" y="0" width="280" height="92" rx="12" fill="#fff" stroke="#d35400" stroke-width="1.5"/><rect x="0" y="0" width="8" height="92" rx="4" fill="#d35400"/><text x="20" y="24" font-size="13" font-weight="bold" fill="#d35400">C · 刷卡与事件</text><text x="20" y="40" font-size="9.5" fill="#8794a6">Tap-in / events</text><text x="20" y="58" font-size="10" fill="#4a5568">离散的<b>刷卡或交易事件</b>，按个体卡号配对还原出行。</text><text x="20" y="80" font-size="9.5" fill="#7b8794">例：轨道交通乘客、常规公交乘客</text></g><g transform="translate(20,130)"><rect x="0" y="0" width="280" height="92" rx="12" fill="#fff" stroke="#7c3aed" stroke-width="1.5"/><rect x="0" y="0" width="8" height="92" rx="4" fill="#7c3aed"/><text x="20" y="24" font-size="13" font-weight="bold" fill="#7c3aed">D · 断面固定检测</text><text x="20" y="40" font-size="9.5" fill="#8794a6">Fixed sensors</text><text x="20" y="58" font-size="10" fill="#4a5568">设备<b>守在固定断面</b>，数经过的车或人，不区分个体。</text><text x="20" y="80" font-size="9.5" fill="#7b8794">例：断面上通过的所有车辆（不区分个体）、经过卡口的车辆（可识别到车）、高速公路车辆（</text></g><g transform="translate(320,130)"><rect x="0" y="0" width="280" height="92" rx="12" fill="#fff" stroke="#db2777" stroke-width="1.5"/><rect x="0" y="0" width="8" height="92" rx="4" fill="#db2777"/><text x="20" y="24" font-size="13" font-weight="bold" fill="#db2777">E · 聚合衍生</text><text x="20" y="40" font-size="9.5" fill="#8794a6">Aggregated products</text><text x="20" y="58" font-size="10" fill="#4a5568">已经<b>脱敏统计好的成品</b>：速度指数、网格 OD 等。</text><text x="20" y="80" font-size="9.5" fill="#7b8794">例：路段（不是车辆）、人群流量（个体已抹除）</text></g><g transform="translate(620,130)"><rect x="0" y="0" width="280" height="92" rx="12" fill="#fff" stroke="#0284c7" stroke-width="1.5"/><rect x="0" y="0" width="8" height="92" rx="4" fill="#0284c7"/><text x="20" y="24" font-size="13" font-weight="bold" fill="#0284c7">F · 其他模态与粗定位</text><text x="20" y="40" font-size="9.5" fill="#8794a6">Other modalities</text><text x="20" y="58" font-size="10" fill="#4a5568">船舶 AIS、手机信令等<b>非陆路 / 粗定位</b>数据。</text><text x="20" y="80" font-size="9.5" fill="#7b8794">例：船舶（海运/内河）、持手机的人（全模式，不限交通工具）</text></g></svg>
+
+  <hr/>
+  <h2>二、同一次出行，六类数据各留下什么痕迹</h2>
+  <p>下面六个面板是<strong>同一条路、同一次出行</strong>。注意：左边 A 能看到完整轨迹，越往右数据越「稀疏/聚合」，
+    到 F 类只剩下一团几百米精度的模糊影子——这正是一份数据<b>能回答什么</b>的根本原因。</p>
+  <div class="svg-wrap"><svg viewBox="0 0 920 420" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="同一次出行六类数据痕迹对比"><g transform="translate(20,30)"><rect x="0" y="0" width="280" height="170" rx="12" fill="#fff" stroke="#2563eb" stroke-width="1.5"/><rect x="0" y="0" width="280" height="26" rx="12" fill="#2563eb"/><rect x="0" y="13" width="280" height="13" fill="#2563eb"/><text x="14" y="18" font-size="12" font-weight="bold" fill="#fff">A · 出租车车载 GPS</text><g transform="translate(14,32)"><path d="M 28.0,83.6 L 36.2,88.8 L 44.5,93.5 L 52.7,97.3 L 61.0,100.3 L 69.2,102.4 L 77.4,103.6 L 85.7,104.0 L 93.9,103.6 L 102.2,102.6 L 110.4,101.2 L 118.6,99.5 L 126.9,97.7 L 135.1,95.9 L 143.4,94.3 L 151.6,93.0 L 159.8,92.0 L 168.1,91.3 L 176.3,90.9 L 184.6,90.8 L 192.8,90.8 L 201.0,90.8 L 209.3,90.6 L 217.5,90.0 L 225.8,89.1 L 234.0,87.6" fill="none" stroke="#cbd2d9" stroke-width="2" stroke-dasharray="4 4" opacity="0.6"/><circle cx="28.0" cy="83.6" r="2.6" fill="#2563eb"/><circle cx="44.5" cy="93.5" r="2.6" fill="#2563eb"/><circle cx="61.0" cy="100.3" r="2.6" fill="#2563eb"/><circle cx="77.4" cy="103.6" r="2.6" fill="#2563eb"/><circle cx="93.9" cy="103.6" r="2.6" fill="#2563eb"/><circle cx="110.4" cy="101.2" r="2.6" fill="#2563eb"/><circle cx="126.9" cy="97.7" r="2.6" fill="#2563eb"/><circle cx="143.4" cy="94.3" r="2.6" fill="#2563eb"/><circle cx="159.8" cy="92.0" r="2.6" fill="#2563eb"/><circle cx="176.3" cy="90.9" r="2.6" fill="#2563eb"/><circle cx="192.8" cy="90.8" r="2.6" fill="#2563eb"/><circle cx="209.3" cy="90.6" r="2.6" fill="#2563eb"/><circle cx="225.8" cy="89.1" r="2.6" fill="#2563eb"/><text x="150" y="150" text-anchor="middle" font-size="11" fill="#2563eb">密密麻麻的坐标点串成轨迹</text></g></g><g transform="translate(320,30)"><rect x="0" y="0" width="280" height="170" rx="12" fill="#fff" stroke="#16a085" stroke-width="1.5"/><rect x="0" y="0" width="280" height="26" rx="12" fill="#16a085"/><rect x="0" y="13" width="280" height="13" fill="#16a085"/><text x="14" y="18" font-size="12" font-weight="bold" fill="#fff">B · 共享单车骑行订单</text><g transform="translate(14,32)"><path d="M 28.0,83.6 L 36.2,88.8 L 44.5,93.5 L 52.7,97.3 L 61.0,100.3 L 69.2,102.4 L 77.4,103.6 L 85.7,104.0 L 93.9,103.6 L 102.2,102.6 L 110.4,101.2 L 118.6,99.5 L 126.9,97.7 L 135.1,95.9 L 143.4,94.3 L 151.6,93.0 L 159.8,92.0 L 168.1,91.3 L 176.3,90.9 L 184.6,90.8 L 192.8,90.8 L 201.0,90.8 L 209.3,90.6 L 217.5,90.0 L 225.8,89.1 L 234.0,87.6" fill="none" stroke="#cbd2d9" stroke-width="2" stroke-dasharray="4 4" opacity="0.6"/><line x1="36.2" y1="88.8" x2="225.8" y2="89.1" stroke="#16a085" stroke-width="2" stroke-dasharray="5 4"/><circle cx="36.2" cy="88.8" r="5" fill="#16a085"/><circle cx="225.8" cy="89.1" r="5" fill="#16a085"/><text x="36.2" y="79.8" text-anchor="middle" font-size="10" fill="#16a085">起点</text><text x="225.8" y="80.1" text-anchor="middle" font-size="10" fill="#16a085">终点</text><text x="150" y="150" text-anchor="middle" font-size="11" fill="#16a085">只有 OD，中间是黑箱</text></g></g><g transform="translate(620,30)"><rect x="0" y="0" width="280" height="170" rx="12" fill="#fff" stroke="#d35400" stroke-width="1.5"/><rect x="0" y="0" width="280" height="26" rx="12" fill="#d35400"/><rect x="0" y="13" width="280" height="13" fill="#d35400"/><text x="14" y="18" font-size="12" font-weight="bold" fill="#fff">C · 地铁进出站刷卡（AFC）</text><g transform="translate(14,32)"><path d="M 28.0,83.6 L 36.2,88.8 L 44.5,93.5 L 52.7,97.3 L 61.0,100.3 L 69.2,102.4 L 77.4,103.6 L 85.7,104.0 L 93.9,103.6 L 102.2,102.6 L 110.4,101.2 L 118.6,99.5 L 126.9,97.7 L 135.1,95.9 L 143.4,94.3 L 151.6,93.0 L 159.8,92.0 L 168.1,91.3 L 176.3,90.9 L 184.6,90.8 L 192.8,90.8 L 201.0,90.8 L 209.3,90.6 L 217.5,90.0 L 225.8,89.1 L 234.0,87.6" fill="none" stroke="#cbd2d9" stroke-width="2" stroke-dasharray="4 4" opacity="0.6"/><rect x="29.2" y="81.8" width="14" height="14" rx="2" fill="#d35400"/><rect x="218.8" y="82.1" width="14" height="14" rx="2" fill="#d35400"/><text x="36.2" y="108.8" text-anchor="middle" font-size="9" fill="#d35400">进</text><text x="225.8" y="109.1" text-anchor="middle" font-size="9" fill="#d35400">出</text><text x="150" y="150" text-anchor="middle" font-size="11" fill="#d35400">两次刷卡事件，路径靠推断</text></g></g><g transform="translate(20,220)"><rect x="0" y="0" width="280" height="170" rx="12" fill="#fff" stroke="#7c3aed" stroke-width="1.5"/><rect x="0" y="0" width="280" height="26" rx="12" fill="#7c3aed"/><rect x="0" y="13" width="280" height="13" fill="#7c3aed"/><text x="14" y="18" font-size="12" font-weight="bold" fill="#fff">D · 线圈 / 地磁检测器</text><g transform="translate(14,32)"><path d="M 28.0,83.6 L 36.2,88.8 L 44.5,93.5 L 52.7,97.3 L 61.0,100.3 L 69.2,102.4 L 77.4,103.6 L 85.7,104.0 L 93.9,103.6 L 102.2,102.6 L 110.4,101.2 L 118.6,99.5 L 126.9,97.7 L 135.1,95.9 L 143.4,94.3 L 151.6,93.0 L 159.8,92.0 L 168.1,91.3 L 176.3,90.9 L 184.6,90.8 L 192.8,90.8 L 201.0,90.8 L 209.3,90.6 L 217.5,90.0 L 225.8,89.1 L 234.0,87.6" fill="none" stroke="#cbd2d9" stroke-width="2" stroke-dasharray="4 4" opacity="0.6"/><line x1="69.2" y1="90.4" x2="69.2" y2="114.4" stroke="#7c3aed" stroke-width="2.5"/><circle cx="69.2" cy="90.4" r="3" fill="#7c3aed"/><line x1="131.0" y1="84.8" x2="131.0" y2="108.8" stroke="#7c3aed" stroke-width="2.5"/><circle cx="131.0" cy="84.8" r="3" fill="#7c3aed"/><line x1="192.8" y1="78.8" x2="192.8" y2="102.8" stroke="#7c3aed" stroke-width="2.5"/><circle cx="192.8" cy="78.8" r="3" fill="#7c3aed"/><text x="150" y="150" text-anchor="middle" font-size="11" fill="#7c3aed">断面上数车，不知道是谁</text></g></g><g transform="translate(320,220)"><rect x="0" y="0" width="280" height="170" rx="12" fill="#fff" stroke="#db2777" stroke-width="1.5"/><rect x="0" y="0" width="280" height="26" rx="12" fill="#db2777"/><rect x="0" y="13" width="280" height="13" fill="#db2777"/><text x="14" y="18" font-size="12" font-weight="bold" fill="#fff">E · 路段速度指数</text><g transform="translate(14,32)"><path d="M 28.0,83.6 L 36.2,88.8 L 44.5,93.5 L 52.7,97.3 L 61.0,100.3 L 69.2,102.4 L 77.4,103.6 L 85.7,104.0 L 93.9,103.6 L 102.2,102.6 L 110.4,101.2 L 118.6,99.5 L 126.9,97.7 L 135.1,95.9 L 143.4,94.3 L 151.6,93.0 L 159.8,92.0 L 168.1,91.3 L 176.3,90.9 L 184.6,90.8 L 192.8,90.8 L 201.0,90.8 L 209.3,90.6 L 217.5,90.0 L 225.8,89.1 L 234.0,87.6" fill="none" stroke="#cbd2d9" stroke-width="2" stroke-dasharray="4 4" opacity="0.6"/><line x1="28.0" y1="83.6" x2="53.8" y2="97.7" stroke="rgb(220,60,60)" stroke-width="4"/><line x1="53.8" y1="97.7" x2="79.5" y2="103.8" stroke="rgb(200,80,60)" stroke-width="4"/><line x1="79.5" y1="103.8" x2="105.2" y2="102.2" stroke="rgb(180,100,60)" stroke-width="4"/><line x1="105.2" y1="102.2" x2="131.0" y2="96.8" stroke="rgb(160,120,60)" stroke-width="4"/><line x1="131.0" y1="96.8" x2="156.8" y2="92.3" stroke="rgb(140,140,60)" stroke-width="4"/><line x1="156.8" y1="92.3" x2="182.5" y2="90.8" stroke="rgb(120,160,60)" stroke-width="4"/><line x1="182.5" y1="90.8" x2="208.2" y2="90.6" stroke="rgb(100,180,60)" stroke-width="4"/><line x1="208.2" y1="90.6" x2="234.0" y2="87.6" stroke="rgb(80,200,60)" stroke-width="4"/><text x="150" y="150" text-anchor="middle" font-size="11" fill="#db2777">路段被染成红/绿，个体已抹去</text></g></g><g transform="translate(620,220)"><rect x="0" y="0" width="280" height="170" rx="12" fill="#fff" stroke="#0284c7" stroke-width="1.5"/><rect x="0" y="0" width="280" height="26" rx="12" fill="#0284c7"/><rect x="0" y="13" width="280" height="13" fill="#0284c7"/><text x="14" y="18" font-size="12" font-weight="bold" fill="#fff">F · 船舶 AIS 报文</text><g transform="translate(14,32)"><path d="M 28.0,83.6 L 36.2,88.8 L 44.5,93.5 L 52.7,97.3 L 61.0,100.3 L 69.2,102.4 L 77.4,103.6 L 85.7,104.0 L 93.9,103.6 L 102.2,102.6 L 110.4,101.2 L 118.6,99.5 L 126.9,97.7 L 135.1,95.9 L 143.4,94.3 L 151.6,93.0 L 159.8,92.0 L 168.1,91.3 L 176.3,90.9 L 184.6,90.8 L 192.8,90.8 L 201.0,90.8 L 209.3,90.6 L 217.5,90.0 L 225.8,89.1 L 234.0,87.6" fill="none" stroke="#cbd2d9" stroke-width="2" stroke-dasharray="4 4" opacity="0.6"/><rect x="0" y="0" width="46" height="46" fill="none" stroke="#e3e8ee" stroke-width="1"/><rect x="0" y="46" width="46" height="46" fill="none" stroke="#e3e8ee" stroke-width="1"/><rect x="0" y="92" width="46" height="46" fill="none" stroke="#e3e8ee" stroke-width="1"/><rect x="46" y="0" width="46" height="46" fill="none" stroke="#e3e8ee" stroke-width="1"/><rect x="46" y="46" width="46" height="46" fill="none" stroke="#e3e8ee" stroke-width="1"/><rect x="46" y="92" width="46" height="46" fill="none" stroke="#e3e8ee" stroke-width="1"/><rect x="92" y="0" width="46" height="46" fill="none" stroke="#e3e8ee" stroke-width="1"/><rect x="92" y="46" width="46" height="46" fill="none" stroke="#e3e8ee" stroke-width="1"/><rect x="92" y="92" width="46" height="46" fill="none" stroke="#e3e8ee" stroke-width="1"/><rect x="138" y="0" width="46" height="46" fill="none" stroke="#e3e8ee" stroke-width="1"/><rect x="138" y="46" width="46" height="46" fill="none" stroke="#e3e8ee" stroke-width="1"/><rect x="138" y="92" width="46" height="46" fill="none" stroke="#e3e8ee" stroke-width="1"/><rect x="184" y="0" width="46" height="46" fill="none" stroke="#e3e8ee" stroke-width="1"/><rect x="184" y="46" width="46" height="46" fill="none" stroke="#e3e8ee" stroke-width="1"/><rect x="184" y="92" width="46" height="46" fill="none" stroke="#e3e8ee" stroke-width="1"/><rect x="230" y="0" width="46" height="46" fill="none" stroke="#e3e8ee" stroke-width="1"/><rect x="230" y="46" width="46" height="46" fill="none" stroke="#e3e8ee" stroke-width="1"/><rect x="230" y="92" width="46" height="46" fill="none" stroke="#e3e8ee" stroke-width="1"/><circle cx="131.0" cy="94.8" r="34" fill="#0284c7" opacity="0.18"/><circle cx="131.0" cy="94.8" r="18" fill="#0284c7" opacity="0.28"/><text x="150" y="150" text-anchor="middle" font-size="11" fill="#0284c7">几百米精度的模糊团</text></g></g></svg></div>
+  <div class="cap">图例：灰色虚线=真实发生过的路；彩色=该类数据实际记录到的内容。</div>
+
+  <hr/>
+  <h2>三、三张谱：覆盖 / 采样间隔 / 空间精度</h2>
+  <p class="muted">出租车类数据往往「采样密、精度高」；越往聚合/粗定位走，分析自由度越低。</p>
+  
+  <div class="chart-row">
+    <figure><img src="../assets/img/tax_cat_coverage.png" alt="分类覆盖"/><figcaption>六类数据各覆盖多少种样本</figcaption></figure>
+  </div>
+  <div class="chart-row">
+    <figure><img src="../assets/img/tax_sampling.png" alt="采样间隔谱"/><figcaption>时间采样越粗，能做的分析越受限（对数轴）</figcaption></figure>
+    <figure><img src="../assets/img/tax_spatial.png" alt="空间精度谱"/><figcaption>空间精度越粗，越看不到个体路径（对数轴）</figcaption></figure>
+  </div>
+
+  <hr/>
+  <h2>四、17 种典型数据集（按类别分组）</h2>
+  <p class="muted">每张卡：载体 / 结构 / 粒度 → 能回答 → 不能回答 → 典型陷阱 → 字段 → 真实参照 → 样本 → 下载。</p>
+  
+    <section class="cat-block">
+      <h3 id="cat-A" style="color:#2563eb">A · 连续点轨迹 <span class="en">Continuous point trajectories</span></h3>
+      <p class="cat-desc">车载/手持终端<b>逐点上报</b>：每个时刻一个坐标点，串起来就是轨迹。</p>
+      <div class="tax-gridwrap">
+        <article class="tax-card" style="border-left:4px solid #2563eb">
+          <div class="tax-head">
+            <h4>出租车车载 GPS</h4>
+            <a class="dl" href="../data/sim/modes/a1_taxi_gps.csv" download>下载 CSV</a>
+          </div>
+          <div class="tax-meta">
+            <span><b>载体</b> 巡游出租车</span>
+            <span><b>结构</b> 连续点序列（30 秒一点）</span>
+            <span><b>粒度</b> 秒级时间 / 米级空间</span>
+          </div>
+          <div class="tax-grid">
+            <div class="can"><b>✅ 能回答</b><p>完整行驶路径、速度画像、空车 vs 载客对比、OD 推断、热点识别、路径选择偏好。</p></div>
+            <div class="cannot"><b>⛔ 不能回答</b><p>乘客是谁、车费多少、乘客下车后去了哪（换乘链断在下客点）。</p></div>
+          </div>
+          <p class="pit"><b>⚠️ 典型陷阱</b> 载客字段翻转点才是真正的上下客时刻；若只按「速度=0」找停靠，会把红灯误判成载客交易。</p>
+          <p class="fields"><b>字段</b> veh_id 车辆编号｜ts 时间戳｜lon/lat WGS-84 坐标｜speed_kmh 瞬时速度｜heading_deg 航向角｜occupied 0 空车 1 载客</p>
+          <p class="ref"><b>真实参照</b> 本项目北京 T-Drive 2008、深圳 2014</p>
+          <div class="table-wrap"><table class="sample"><thead><tr><th>veh_id</th><th>ts</th><th>lon</th><th>lat</th><th>speed_kmh</th><th>heading_deg</th><th>occupied</th></tr></thead>
+            <tbody><tr><td>SIM-T001</td><td>2026-05-18 07:00:00</td><td>120.300774</td><td>31.571605</td><td>23.6</td><td>300</td><td>1</td></tr><tr><td>SIM-T001</td><td>2026-05-18 07:00:30</td><td>120.300721</td><td>31.572381</td><td>0</td><td>15</td><td>1</td></tr><tr><td>SIM-T001</td><td>2026-05-18 07:01:00</td><td>120.300793</td><td>31.573262</td><td>31.1</td><td>135</td><td>1</td></tr><tr><td>SIM-T001</td><td>2026-05-18 07:01:30</td><td>120.300719</td><td>31.574213</td><td>43.7</td><td>165</td><td>1</td></tr><tr><td>SIM-T001</td><td>2026-05-18 07:02:00</td><td>120.300755</td><td>31.574998</td><td>12.4</td><td>45</td><td>1</td></tr><tr><td>SIM-T001</td><td>2026-05-18 07:02:30</td><td>120.300717</td><td>31.575910</td><td>37.2</td><td>330</td><td>0</td></tr></tbody></table></div>
+          <div class="cap">样本前 6 行（完整文件见上方下载）。</div>
+        </article>
+        <article class="tax-card" style="border-left:4px solid #2563eb">
+          <div class="tax-head">
+            <h4>网约车订单轨迹</h4>
+            <a class="dl" href="../data/sim/modes/a2_ridehail_order.csv" download>下载 CSV</a>
+          </div>
+          <div class="tax-meta">
+            <span><b>载体</b> 网约车（平台派单）</span>
+            <span><b>结构</b> 连续点序列 + 订单状态机</span>
+            <span><b>粒度</b> 20 秒级 / 米级</span>
+          </div>
+          <div class="tax-grid">
+            <div class="can"><b>✅ 能回答</b><p>接驾距离与时长、平台派单效率、空驶结构（待单 vs 接驾）、订单级完整链路。</p></div>
+            <div class="cannot"><b>⛔ 不能回答</b><p>巡游揽客行为（本来就不存在）、未上平台的黑车、平台之外的出行。</p></div>
+          </div>
+          <p class="pit"><b>⚠️ 典型陷阱</b> 空驶期 order_id 为空，直接按 order_id 分组会丢掉一半里程；接驾里程常被误算进「载客里程」。</p>
+          <p class="fields"><b>字段</b> order_id 订单号（空=无订单）｜driver_id 司机｜ts 时间｜lon/lat 坐标｜speed_kmh 速度｜order_status 0待单/1接驾/2送驾/3完成后空驶</p>
+          <p class="ref"><b>真实参照</b> 滴滴 GAIA 开放数据集（成都/西安订单与轨迹）</p>
+          <div class="table-wrap"><table class="sample"><thead><tr><th>order_id</th><th>driver_id</th><th>ts</th><th>lon</th><th>lat</th><th>speed_kmh</th><th>order_status</th></tr></thead>
+            <tbody><tr><td><span class=miss>∅</span></td><td>DRV0041</td><td>2026-05-18 07:00:00</td><td>120.305133</td><td>31.568365</td><td>12.4</td><td>0</td></tr><tr><td><span class=miss>∅</span></td><td>DRV0041</td><td>2026-05-18 07:00:20</td><td>120.305074</td><td>31.569254</td><td>22.5</td><td>0</td></tr><tr><td><span class=miss>∅</span></td><td>DRV0041</td><td>2026-05-18 07:00:40</td><td>120.305117</td><td>31.570067</td><td>30.2</td><td>0</td></tr><tr><td><span class=miss>∅</span></td><td>DRV0041</td><td>2026-05-18 07:01:00</td><td>120.303909</td><td>31.570032</td><td>20.6</td><td>0</td></tr><tr><td><span class=miss>∅</span></td><td>DRV0041</td><td>2026-05-18 07:01:20</td><td>120.302927</td><td>31.570078</td><td>5.9</td><td>0</td></tr><tr><td>ORD20260518000</td><td>DRV0041</td><td>2026-05-18 07:01:40</td><td>120.302895</td><td>31.569277</td><td>9.7</td><td>1</td></tr></tbody></table></div>
+          <div class="cap">样本前 6 行（完整文件见上方下载）。</div>
+        </article>
+        <article class="tax-card" style="border-left:4px solid #2563eb">
+          <div class="tax-head">
+            <h4>公交车 GPS 与到站偏差</h4>
+            <a class="dl" href="../data/sim/modes/a3_bus_gps.csv" download>下载 CSV</a>
+          </div>
+          <div class="tax-meta">
+            <span><b>载体</b> 常规公交</span>
+            <span><b>结构</b> 连续点序列 + 线路/站序标签</span>
+            <span><b>粒度</b> 30~45 秒级 / 站点级语义</span>
+          </div>
+          <div class="tax-grid">
+            <div class="can"><b>✅ 能回答</b><p>线路运行时间、站间车速、到站准点率、串车（bunching）识别、专用道效果评估。</p></div>
+            <div class="cannot"><b>⛔ 不能回答</b><p>车上有几个人、乘客从哪上到哪下（要配合刷卡数据）、乘客等待时间。</p></div>
+          </div>
+          <p class="pit"><b>⚠️ 典型陷阱</b> 同一线路多辆车轨迹几乎重叠，做空间聚类会把线路当成「热点」；sched_dev_s 是累积量不是瞬时量。</p>
+          <p class="fields"><b>字段</b> line_id 线路｜bus_id 车辆｜ts 时间｜lon/lat 坐标｜speed_kmh 速度｜next_stop_seq 下一站序号｜sched_dev_s 相对时刻表偏差秒（正=晚点）</p>
+          <p class="ref"><b>真实参照</b> 各地公交集团 AVL 数据、GTFS-Realtime</p>
+          <div class="table-wrap"><table class="sample"><thead><tr><th>line_id</th><th>bus_id</th><th>ts</th><th>lon</th><th>lat</th><th>speed_kmh</th><th>next_stop_seq</th><th>sched_dev_s</th></tr></thead>
+            <tbody><tr><td>L12</td><td>BUS001</td><td>2026-05-18 07:00:00</td><td>120.289076</td><td>31.562975</td><td>0</td><td>1</td><td>-53</td></tr><tr><td>L12</td><td>BUS001</td><td>2026-05-18 07:00:45</td><td>120.289040</td><td>31.563970</td><td>36.4</td><td>1</td><td>-37</td></tr><tr><td>L12</td><td>BUS001</td><td>2026-05-18 07:01:20</td><td>120.288979</td><td>31.564976</td><td>23.5</td><td>1</td><td>-44</td></tr><tr><td>L12</td><td>BUS001</td><td>2026-05-18 07:01:55</td><td>120.287747</td><td>31.565056</td><td>31.0</td><td>1</td><td>-25</td></tr><tr><td>L12</td><td>BUS001</td><td>2026-05-18 07:02:30</td><td>120.286411</td><td>31.565087</td><td>0</td><td>2</td><td>-35</td></tr><tr><td>L12</td><td>BUS001</td><td>2026-05-18 07:03:15</td><td>120.285142</td><td>31.564968</td><td>34.1</td><td>2</td><td>-14</td></tr></tbody></table></div>
+          <div class="cap">样本前 6 行（完整文件见上方下载）。</div>
+        </article>
+        <article class="tax-card" style="border-left:4px solid #2563eb">
+          <div class="tax-head">
+            <h4>货运车辆北斗监控</h4>
+            <a class="dl" href="../data/sim/modes/a4_truck_freight.csv" download>下载 CSV</a>
+          </div>
+          <div class="tax-meta">
+            <span><b>载体</b> 营运货车（部标北斗终端）</span>
+            <span><b>结构</b> 连续点序列 + 状态与报警</span>
+            <span><b>粒度</b> 1~5 分钟级 / 城际尺度</span>
+          </div>
+          <div class="tax-grid">
+            <div class="can"><b>✅ 能回答</b><p>干线物流通道识别、装卸点（物流枢纽）挖掘、超速与疲劳驾驶合规、空重载里程比。</p></div>
+            <div class="cannot"><b>⛔ 不能回答</b><p>货物是什么、运费多少、城市内最后一公里配送细节（采样太稀）。</p></div>
+          </div>
+          <p class="pit"><b>⚠️ 典型陷阱</b> 采样间隔按分钟计，直线插值会「穿墙」跨越河流山体；长时间零速是装卸不是故障，别当异常删掉。</p>
+          <p class="fields"><b>字段</b> plate_hash 车牌哈希（脱敏）｜ts 时间｜lon/lat 坐标｜speed_kmh 速度｜load_state empty空载/loaded重载｜alarm_code 报警类型</p>
+          <p class="ref"><b>真实参照</b> 全国道路货运车辆公共监管平台、部标 JT/T 808 终端数据</p>
+          <div class="table-wrap"><table class="sample"><thead><tr><th>plate_hash</th><th>ts</th><th>lon</th><th>lat</th><th>speed_kmh</th><th>load_state</th><th>alarm_code</th></tr></thead>
+            <tbody><tr><td>HASH4AF22</td><td>2026-05-18 07:00:00</td><td>120.302642</td><td>31.573462</td><td>0</td><td>empty</td><td><span class=miss>∅</span></td></tr><tr><td>HASH4AF22</td><td>2026-05-18 07:05:00</td><td>120.302642</td><td>31.573462</td><td>0</td><td>empty</td><td><span class=miss>∅</span></td></tr><tr><td>HASH4AF22</td><td>2026-05-18 07:10:00</td><td>120.302642</td><td>31.573462</td><td>0</td><td>empty</td><td><span class=miss>∅</span></td></tr><tr><td>HASH4AF22</td><td>2026-05-18 07:15:00</td><td>120.302642</td><td>31.573462</td><td>0</td><td>empty</td><td><span class=miss>∅</span></td></tr><tr><td>HASH4AF22</td><td>2026-05-18 07:20:00</td><td>120.302642</td><td>31.573462</td><td>0</td><td>empty</td><td><span class=miss>∅</span></td></tr><tr><td>HASH4AF22</td><td>2026-05-18 07:25:00</td><td>120.302642</td><td>31.573462</td><td>0</td><td>empty</td><td><span class=miss>∅</span></td></tr></tbody></table></div>
+          <div class="cap">样本前 6 行（完整文件见上方下载）。</div>
+        </article>
+        <article class="tax-card" style="border-left:4px solid #2563eb">
+          <div class="tax-head">
+            <h4>共享电单车骑行轨迹</h4>
+            <a class="dl" href="../data/sim/modes/a5_ebike_share.csv" download>下载 CSV</a>
+          </div>
+          <div class="tax-meta">
+            <span><b>载体</b> 共享电单车 / 助力车</span>
+            <span><b>结构</b> 连续点序列 + 围栏与电量</span>
+            <span><b>粒度</b> 15 秒级 / 亚米级抖动明显</span>
+          </div>
+          <div class="tax-grid">
+            <div class="can"><b>✅ 能回答</b><p>非机动车道使用、违规驶出电子围栏、短距接驳（地铁最后一公里）、电量与调度需求。</p></div>
+            <div class="cannot"><b>⛔ 不能回答</b><p>骑车人是谁、有没有戴头盔、是否载人（数据里看不出来）。</p></div>
+          </div>
+          <p class="pit"><b>⚠️ 典型陷阱</b> 轨迹经常落在机动车路网之外（人行道、小巷、绿道），用汽车路网做地图匹配会大面积匹配失败。</p>
+          <p class="fields"><b>字段</b> bike_id 车辆｜ts 时间｜lon/lat 坐标｜speed_kmh 速度｜battery_pct 电量百分比｜in_fence 1在运营围栏内/0越界</p>
+          <p class="ref"><b>真实参照</b> 各城市共享单车/电单车监管平台接口</p>
+          <div class="table-wrap"><table class="sample"><thead><tr><th>bike_id</th><th>ts</th><th>lon</th><th>lat</th><th>speed_kmh</th><th>battery_pct</th><th>in_fence</th></tr></thead>
+            <tbody><tr><td>EB83807</td><td>2026-05-18 07:00:00</td><td>120.303006</td><td>31.565280</td><td>11.1</td><td>70</td><td>1</td></tr><tr><td>EB83807</td><td>2026-05-18 07:00:15</td><td>120.303003</td><td>31.565522</td><td>14.0</td><td>70</td><td>1</td></tr><tr><td>EB83807</td><td>2026-05-18 07:00:30</td><td>120.302930</td><td>31.565919</td><td>7.6</td><td>69</td><td>1</td></tr><tr><td>EB83807</td><td>2026-05-18 07:00:45</td><td>120.302954</td><td>31.566117</td><td>8.1</td><td>67</td><td>1</td></tr><tr><td>EB83807</td><td>2026-05-18 07:01:00</td><td>120.302609</td><td>31.566181</td><td>19.6</td><td>67</td><td>1</td></tr><tr><td>EB83807</td><td>2026-05-18 07:01:15</td><td>120.302113</td><td>31.566147</td><td>4.5</td><td>65</td><td>1</td></tr></tbody></table></div>
+          <div class="cap">样本前 6 行（完整文件见上方下载）。</div>
+        </article></div>
+    </section>
+
+    <section class="cat-block">
+      <h3 id="cat-B" style="color:#16a085">B · 行程起止记录 <span class="en">OD / trip records</span></h3>
+      <p class="cat-desc">只有<b>起点和终点</b>（OD），中间轨迹根本不存在。</p>
+      <div class="tax-gridwrap">
+        <article class="tax-card" style="border-left:4px solid #16a085">
+          <div class="tax-head">
+            <h4>共享单车骑行订单</h4>
+            <a class="dl" href="../data/sim/modes/b1_dockless_bike_trip.csv" download>下载 CSV</a>
+          </div>
+          <div class="tax-meta">
+            <span><b>载体</b> 无桩共享单车</span>
+            <span><b>结构</b> 只有起点与终点（两个坐标）</span>
+            <span><b>粒度</b> 行程级 / 米级起止点</span>
+          </div>
+          <div class="tax-grid">
+            <div class="can"><b>✅ 能回答</b><p>OD 分布、骑行时长与距离分布、地铁站接驳量、早晚高峰潮汐、投放调度需求。</p></div>
+            <div class="cannot"><b>⛔ 不能回答</b><p>走了哪条路（中间轨迹根本不存在）、路径选择偏好、途中是否停顿。</p></div>
+          </div>
+          <p class="pit"><b>⚠️ 典型陷阱</b> distance_m 通常是「计费距离」而非直线距离，拿它算平均速度会偏大；不能做地图匹配和路径分析。</p>
+          <p class="fields"><b>字段</b> order_id 订单｜bike_id 车辆｜start/end_time 起止时间｜start/end_lon,lat 起止坐标｜duration_s 时长秒｜distance_m 骑行距离米</p>
+          <p class="ref"><b>真实参照</b> 摩拜/哈啰开放数据、Divvy / Citi Bike 公开 trip 数据</p>
+          <div class="table-wrap"><table class="sample"><thead><tr><th>order_id</th><th>bike_id</th><th>start_time</th><th>start_lon</th><th>start_lat</th><th>end_time</th><th>end_lon</th><th>end_lat</th><th>duration_s</th><th>distance_m</th></tr></thead>
+            <tbody><tr><td>BK20260518000</td><td>MB436478</td><td>2026-05-18 07:26:00</td><td>120.294379</td><td>31.556411</td><td>2026-05-18 07:48:46</td><td>120.294539</td><td>31.548915</td><td>1366</td><td>1015</td></tr><tr><td>BK20260518001</td><td>MB227173</td><td>2026-05-18 08:15:00</td><td>120.296340</td><td>31.584816</td><td>2026-05-18 08:42:37</td><td>120.301106</td><td>31.578411</td><td>1657</td><td>1044</td></tr><tr><td>BK20260518002</td><td>MB510280</td><td>2026-05-18 08:08:00</td><td>120.298182</td><td>31.564744</td><td>2026-05-18 08:15:09</td><td>120.302246</td><td>31.571348</td><td>429</td><td>1040</td></tr><tr><td>BK20260518003</td><td>MB570683</td><td>2026-05-18 08:29:00</td><td>120.281008</td><td>31.581086</td><td>2026-05-18 08:43:32</td><td>120.287443</td><td>31.583009</td><td>872</td><td>860</td></tr><tr><td>BK20260518004</td><td>MB905781</td><td>2026-05-18 09:22:00</td><td>120.303827</td><td>31.573025</td><td>2026-05-18 09:43:20</td><td>120.299002</td><td>31.577428</td><td>1280</td><td>788</td></tr><tr><td>BK20260518005</td><td>MB822374</td><td>2026-05-18 07:44:00</td><td>120.299242</td><td>31.580709</td><td>2026-05-18 07:47:17</td><td>120.290706</td><td>31.579877</td><td>197</td><td>1161</td></tr></tbody></table></div>
+          <div class="cap">样本前 6 行（完整文件见上方下载）。</div>
+        </article>
+        <article class="tax-card" style="border-left:4px solid #16a085">
+          <div class="tax-head">
+            <h4>有桩公共自行车行程</h4>
+            <a class="dl" href="../data/sim/modes/b2_docked_bike_trip.csv" download>下载 CSV</a>
+          </div>
+          <div class="tax-meta">
+            <span><b>载体</b> 有桩公共自行车</span>
+            <span><b>结构</b> 站点到站点（离散节点，无坐标）</span>
+            <span><b>粒度</b> 行程级 / 站点级空间</span>
+          </div>
+          <div class="tax-grid">
+            <div class="can"><b>✅ 能回答</b><p>站点间流量矩阵、站点满溢与空桩、会员 vs 散客行为差异、调度车调运计划。</p></div>
+            <div class="cannot"><b>⛔ 不能回答</b><p>任何比站点更细的空间分析——你连起点坐标都没有，只有一个站名。</p></div>
+          </div>
+          <p class="pit"><b>⚠️ 典型陷阱</b> 位置精度被站点锁死（一个站覆盖数百米）；必须外接站点坐标表才能上地图，站点还会新增/迁移导致 ID 变化。</p>
+          <p class="fields"><b>字段</b> trip_id 行程｜start/end_station_id 起止站点编号｜station_name 站名｜start/end_time 起止时间｜member_type annual年卡/casual散客</p>
+          <p class="ref"><b>真实参照</b> Capital Bikeshare、杭州公共自行车、巴黎 Vélib'</p>
+          <div class="table-wrap"><table class="sample"><thead><tr><th>trip_id</th><th>start_station_id</th><th>start_station_name</th><th>start_time</th><th>end_station_id</th><th>end_station_name</th><th>end_time</th><th>member_type</th></tr></thead>
+            <tbody><tr><td>DT9000</td><td>ST003</td><td>地铁二号线A口</td><td>2026-05-18 09:41:00</td><td>ST006</td><td>人民路口</td><td>2026-05-18 09:45:21</td><td>annual</td></tr><tr><td>DT9001</td><td>ST003</td><td>地铁二号线A口</td><td>2026-05-18 09:39:00</td><td>ST007</td><td>科技园东</td><td>2026-05-18 09:53:38</td><td>annual</td></tr><tr><td>DT9002</td><td>ST007</td><td>科技园东</td><td>2026-05-18 08:52:00</td><td>ST002</td><td>文化广场</td><td>2026-05-18 09:03:19</td><td>annual</td></tr><tr><td>DT9003</td><td>ST002</td><td>文化广场</td><td>2026-05-18 07:41:00</td><td>ST004</td><td>滨湖公园北</td><td>2026-05-18 07:51:17</td><td>annual</td></tr><tr><td>DT9004</td><td>ST007</td><td>科技园东</td><td>2026-05-18 10:14:00</td><td>ST002</td><td>文化广场</td><td>2026-05-18 10:20:53</td><td>annual</td></tr><tr><td>DT9005</td><td>ST006</td><td>人民路口</td><td>2026-05-18 09:47:00</td><td>ST007</td><td>科技园东</td><td>2026-05-18 09:52:49</td><td>casual</td></tr></tbody></table></div>
+          <div class="cap">样本前 6 行（完整文件见上方下载）。</div>
+        </article>
+        <article class="tax-card" style="border-left:4px solid #16a085">
+          <div class="tax-head">
+            <h4>出租车计价器行程记录</h4>
+            <a class="dl" href="../data/sim/modes/b3_taxi_meter_trip.csv" download>下载 CSV</a>
+          </div>
+          <div class="tax-meta">
+            <span><b>载体</b> 巡游出租车（计价器/发票系统）</span>
+            <span><b>结构</b> 起止点 + 里程金额（无轨迹）</span>
+            <span><b>粒度</b> 行程级 / 米级起止点</span>
+          </div>
+          <div class="tax-grid">
+            <div class="can"><b>✅ 能回答</b><p>出行需求 OD、票价与里程关系、时段需求曲线、机场火车站集散量、支付方式演变。</p></div>
+            <div class="cannot"><b>⛔ 不能回答</b><p>行驶路径与绕路判定（没有轨迹）、空驶行为（只记录载客段）、拥堵成因。</p></div>
+          </div>
+          <p class="pit"><b>⚠️ 典型陷阱</b> 只记录成功交易，空驶完全不可见——用它估算车辆利用率会严重偏高；里程是计价里程含空驶爬行。</p>
+          <p class="fields"><b>字段</b> trip_id 行程｜pickup/dropoff_time 上下车时间｜pu/do_lon,lat 上下车坐标｜trip_dist_km 计价里程｜fare_cny 车费｜passenger_cnt 乘客数｜payment_type 支付方式</p>
+          <p class="ref"><b>真实参照</b> NYC TLC Trip Record Data（全球最常用的出行数据集之一）</p>
+          <div class="table-wrap"><table class="sample"><thead><tr><th>trip_id</th><th>pickup_time</th><th>dropoff_time</th><th>pu_lon</th><th>pu_lat</th><th>do_lon</th><th>do_lat</th><th>trip_dist_km</th><th>fare_cny</th><th>passenger_cnt</th><th>payment_type</th></tr></thead>
+            <tbody><tr><td>MT7000</td><td>2026-05-18 07:39:00</td><td>2026-05-18 08:03:13</td><td>120.321272</td><td>31.579693</td><td>120.315126</td><td>31.601012</td><td>14.0</td><td>49.2</td><td>1</td><td>cash</td></tr><tr><td>MT7001</td><td>2026-05-18 09:02:00</td><td>2026-05-18 09:12:14</td><td>120.317288</td><td>31.550808</td><td>120.344567</td><td>31.567412</td><td>2.43</td><td>19.5</td><td>3</td><td>card</td></tr><tr><td>MT7002</td><td>2026-05-18 08:54:00</td><td>2026-05-18 09:12:24</td><td>120.323567</td><td>31.566479</td><td>120.296569</td><td>31.573413</td><td>2.45</td><td>22.1</td><td>1</td><td>cash</td></tr><tr><td>MT7003</td><td>2026-05-18 10:55:00</td><td>2026-05-18 11:27:59</td><td>120.290211</td><td>31.578382</td><td>120.282509</td><td>31.588373</td><td>6.34</td><td>30.1</td><td>2</td><td>cash</td></tr><tr><td>MT7004</td><td>2026-05-18 09:25:00</td><td>2026-05-18 09:47:33</td><td>120.284105</td><td>31.554027</td><td>120.259232</td><td>31.576659</td><td>15.85</td><td>49.2</td><td>2</td><td>cash</td></tr><tr><td>MT7005</td><td>2026-05-18 09:39:00</td><td>2026-05-18 10:10:40</td><td>120.288014</td><td>31.573683</td><td>120.265003</td><td>31.580161</td><td>1.33</td><td>16.0</td><td>3</td><td>qr</td></tr></tbody></table></div>
+          <div class="cap">样本前 6 行（完整文件见上方下载）。</div>
+        </article></div>
+    </section>
+
+    <section class="cat-block">
+      <h3 id="cat-C" style="color:#d35400">C · 刷卡与事件 <span class="en">Tap-in / events</span></h3>
+      <p class="cat-desc">离散的<b>刷卡或交易事件</b>，按个体卡号配对还原出行。</p>
+      <div class="tax-gridwrap">
+        <article class="tax-card" style="border-left:4px solid #d35400">
+          <div class="tax-head">
+            <h4>地铁进出站刷卡（AFC）</h4>
+            <a class="dl" href="../data/sim/modes/c1_metro_afc.csv" download>下载 CSV</a>
+          </div>
+          <div class="tax-meta">
+            <span><b>载体</b> 轨道交通乘客</span>
+            <span><b>结构</b> 两次事件配对（进站 + 出站）</span>
+            <span><b>粒度</b> 秒级时间 / 车站级空间</span>
+          </div>
+          <div class="tax-grid">
+            <div class="can"><b>✅ 能回答</b><p>全网 OD 客流矩阵、断面客流、换乘量估算、票价清分、通勤人群识别（跨天配对同一卡号）。</p></div>
+            <div class="cannot"><b>⛔ 不能回答</b><p>乘客走了哪条换乘路径（同一 OD 常有 2~3 条可行路径，只能靠模型分配）、车厢内拥挤度、站外接驳方式。</p></div>
+          </div>
+          <p class="pit"><b>⚠️ 典型陷阱</b> 换乘路径不可观测，是这类数据的先天盲区；同卡号跨天配对涉及个体追踪，属敏感操作需脱敏与合规审查。</p>
+          <p class="fields"><b>字段</b> card_hash 卡号哈希｜in_station/out_station 进出站｜in_time/out_time 进出时间｜fare_cny 票价｜card_type 卡类型</p>
+          <p class="ref"><b>真实参照</b> 各城市轨道 AFC 清分数据、上海/北京公交卡研究数据集</p>
+          <div class="table-wrap"><table class="sample"><thead><tr><th>card_hash</th><th>in_station</th><th>in_time</th><th>out_station</th><th>out_time</th><th>fare_cny</th><th>card_type</th></tr></thead>
+            <tbody><tr><td>C95D9C9</td><td>火车站</td><td>2026-05-18 08:36:00</td><td>三阳广场</td><td>2026-05-18 09:22:00</td><td>6.1</td><td>senior</td></tr><tr><td>C85BD02</td><td>三阳广场</td><td>2026-05-18 09:59:00</td><td>会展中心</td><td>2026-05-18 10:39:00</td><td>5.6</td><td>student</td></tr><tr><td>C0DD6D0</td><td>中山路</td><td>2026-05-18 09:17:00</td><td>南禅寺</td><td>2026-05-18 09:33:00</td><td>3.4</td><td>normal</td></tr><tr><td>C56419A</td><td>太湖广场</td><td>2026-05-18 08:48:00</td><td>大学城</td><td>2026-05-18 09:13:00</td><td>4.2</td><td>normal</td></tr><tr><td>C5ED3C7</td><td>会展中心</td><td>2026-05-18 07:31:00</td><td>南禅寺</td><td>2026-05-18 08:14:00</td><td>5.9</td><td>normal</td></tr><tr><td>C13EBD8</td><td>大学城</td><td>2026-05-18 09:31:00</td><td>中山路</td><td>2026-05-18 10:02:00</td><td>4.8</td><td>senior</td></tr></tbody></table></div>
+          <div class="cap">样本前 6 行（完整文件见上方下载）。</div>
+        </article>
+        <article class="tax-card" style="border-left:4px solid #d35400">
+          <div class="tax-head">
+            <h4>公交刷卡（仅上车，无下车）</h4>
+            <a class="dl" href="../data/sim/modes/c2_bus_ic_onboard.csv" download>下载 CSV</a>
+          </div>
+          <div class="tax-meta">
+            <span><b>载体</b> 常规公交乘客</span>
+            <span><b>结构</b> 单次事件（只有一端）</span>
+            <span><b>粒度</b> 秒级时间 / 站点级空间</span>
+          </div>
+          <div class="tax-grid">
+            <div class="can"><b>✅ 能回答</b><p>线路上车客流、站点上客排名、换乘识别（同卡短时间内二次刷卡）、通勤 OD 的「起点」一半。</p></div>
+            <div class="cannot"><b>⛔ 不能回答</b><p>下车站在哪——数据里根本没有。必须用出行链推断（下一次上车站≈本次下车站；当天最后一程≈当天第一程起点）。</p></div>
+          </div>
+          <p class="pit"><b>⚠️ 典型陷阱</b> 一票制城市普遍只刷上车，直接统计 OD 会得到一半为空的矩阵；推断出的下车站是估计值，必须标注不确定性。</p>
+          <p class="fields"><b>字段</b> card_hash 卡号哈希｜line_id 线路｜bus_id 车辆｜board_time 上车刷卡时间｜board_stop_id/name 上车站｜transfer_flag 1=判定为换乘</p>
+          <p class="ref"><b>真实参照</b> 国内多数一票制城市公交 IC 卡数据</p>
+          <div class="table-wrap"><table class="sample"><thead><tr><th>card_hash</th><th>line_id</th><th>bus_id</th><th>board_time</th><th>board_stop_id</th><th>board_stop_name</th><th>transfer_flag</th></tr></thead>
+            <tbody><tr><td>CFE9DB9</td><td>L25</td><td>BUS022</td><td>2026-05-18 07:26:00</td><td>S006</td><td>县前东街</td><td>1</td></tr><tr><td>CB4F4EB</td><td>L12</td><td>BUS008</td><td>2026-05-18 07:36:00</td><td>S005</td><td>崇安寺</td><td>0</td></tr><tr><td>C91E544</td><td>L88</td><td>BUS035</td><td>2026-05-18 07:36:00</td><td>S004</td><td>工人文化宫</td><td>0</td></tr><tr><td>C73E38C</td><td>L88</td><td>BUS008</td><td>2026-05-18 08:24:00</td><td>S002</td><td>青石桥</td><td>0</td></tr><tr><td>C3B5E1E</td><td>L88</td><td>BUS016</td><td>2026-05-18 09:05:00</td><td>S001</td><td>建筑路</td><td>0</td></tr><tr><td>C592DE5</td><td>L12</td><td>BUS035</td><td>2026-05-18 07:35:00</td><td>S001</td><td>建筑路</td><td>0</td></tr></tbody></table></div>
+          <div class="cap">样本前 6 行（完整文件见上方下载）。</div>
+        </article></div>
+    </section>
+
+    <section class="cat-block">
+      <h3 id="cat-D" style="color:#7c3aed">D · 断面固定检测 <span class="en">Fixed sensors</span></h3>
+      <p class="cat-desc">设备<b>守在固定断面</b>，数经过的车或人，不区分个体。</p>
+      <div class="tax-gridwrap">
+        <article class="tax-card" style="border-left:4px solid #7c3aed">
+          <div class="tax-head">
+            <h4>线圈 / 地磁检测器</h4>
+            <a class="dl" href="../data/sim/modes/d1_loop_detector.csv" download>下载 CSV</a>
+          </div>
+          <div class="tax-meta">
+            <span><b>载体</b> 断面上通过的所有车辆（不区分个体）</span>
+            <span><b>结构</b> 固定位置的时间序列聚合</span>
+            <span><b>粒度</b> 5 分钟聚合 / 单一断面</span>
+          </div>
+          <div class="tax-grid">
+            <div class="can"><b>✅ 能回答</b><p>断面流量与占有率、拥堵演化曲线、基本图（流量-密度-速度关系）、信号配时评估、长期趋势（设备常年在岗）。</p></div>
+            <div class="cannot"><b>⛔ 不能回答</b><p>任何个体行为——它不知道是谁经过，也不知道车从哪来到哪去；无法做 OD 与路径。</p></div>
+          </div>
+          <p class="pit"><b>⚠️ 典型陷阱</b> 设备故障导致成段缺失是常态（quality_flag），直接求均值会被 0 或空值污染；单点代表不了整条路。</p>
+          <p class="fields"><b>字段</b> detector_id 检测器｜link_id 所在路段｜ts_5min 5分钟时间片｜volume_veh 通过车辆数｜occupancy_pct 时间占有率｜avg_speed_kmh 断面平均速度｜quality_flag 数据质量</p>
+          <p class="ref"><b>真实参照</b> 加州 PeMS、各城市交通信号系统检测器数据</p>
+          <div class="table-wrap"><table class="sample"><thead><tr><th>detector_id</th><th>link_id</th><th>ts_5min</th><th>volume_veh</th><th>occupancy_pct</th><th>avg_speed_kmh</th><th>quality_flag</th></tr></thead>
+            <tbody><tr><td>DET001</td><td>LK2000</td><td>2026-05-18 07:00:00</td><td>50</td><td>25.2</td><td>44.5</td><td>OK</td></tr><tr><td>DET001</td><td>LK2000</td><td>2026-05-18 07:05:00</td><td>40</td><td>15.6</td><td>53.9</td><td>OK</td></tr><tr><td>DET001</td><td>LK2000</td><td>2026-05-18 07:10:00</td><td>51</td><td>24.8</td><td>51.9</td><td>OK</td></tr><tr><td>DET001</td><td>LK2000</td><td>2026-05-18 07:15:00</td><td>33</td><td>16.0</td><td>55.9</td><td>OK</td></tr><tr><td>DET001</td><td>LK2000</td><td>2026-05-18 07:20:00</td><td>62</td><td>37.8</td><td>39.7</td><td>OK</td></tr><tr><td>DET001</td><td>LK2000</td><td>2026-05-18 07:25:00</td><td>53</td><td>29.8</td><td>42.4</td><td>OK</td></tr></tbody></table></div>
+          <div class="cap">样本前 6 行（完整文件见上方下载）。</div>
+        </article>
+        <article class="tax-card" style="border-left:4px solid #7c3aed">
+          <div class="tax-head">
+            <h4>卡口车牌识别（ANPR）</h4>
+            <a class="dl" href="../data/sim/modes/d2_anpr_camera.csv" download>下载 CSV</a>
+          </div>
+          <div class="tax-meta">
+            <span><b>载体</b> 经过卡口的车辆（可识别到车）</span>
+            <span><b>结构</b> 多个断面的离散观测点</span>
+            <span><b>粒度</b> 秒级时间 / 卡口点位空间</span>
+          </div>
+          <div class="tax-grid">
+            <div class="can"><b>✅ 能回答</b><p>卡口间行程时间、部分路径还原（把同一车牌串起来）、区域进出量、异常车辆追踪。</p></div>
+            <div class="cannot"><b>⛔ 不能回答</b><p>两个卡口之间走的具体路线（中间是黑箱）、没装卡口的路网、车内情况。</p></div>
+          </div>
+          <p class="pit"><b>⚠️ 典型陷阱</b> 识别率不是 100%（confidence 低、遮挡、夜间），漏检会把一条路径拦腰截断；车牌本身是强个体标识，必须哈希脱敏。</p>
+          <p class="fields"><b>字段</b> plate_hash 车牌哈希｜gantry_id 卡口编号｜pass_time 通过时间｜lane 车道｜speed_kmh 通过速度｜confidence 识别置信度｜vehicle_type 车型</p>
+          <p class="ref"><b>真实参照</b> 各城市公安交管卡口数据、高速门架流水</p>
+          <div class="table-wrap"><table class="sample"><thead><tr><th>plate_hash</th><th>gantry_id</th><th>pass_time</th><th>lane</th><th>speed_kmh</th><th>confidence</th><th>vehicle_type</th></tr></thead>
+            <tbody><tr><td>P882A8</td><td>G01</td><td>2026-05-18 07:20:00</td><td>1</td><td>56.4</td><td>0.92</td><td>car</td></tr><tr><td>P882A8</td><td>G02</td><td>2026-05-18 07:24:00</td><td>1</td><td>59.7</td><td>0.96</td><td>truck</td></tr><tr><td>PD2296</td><td>G02</td><td>2026-05-18 07:18:00</td><td>2</td><td>51.6</td><td>0.76</td><td>truck</td></tr><tr><td>PD2296</td><td>G03</td><td>2026-05-18 07:27:00</td><td>1</td><td>66.8</td><td>0.97</td><td>truck</td></tr><tr><td>PD2296</td><td>G04</td><td>2026-05-18 07:32:00</td><td>3</td><td>70.4</td><td>0.98</td><td>bus</td></tr><tr><td>PA7C63</td><td>G01</td><td>2026-05-18 07:22:00</td><td>1</td><td>41.8</td><td>0.74</td><td>bus</td></tr></tbody></table></div>
+          <div class="cap">样本前 6 行（完整文件见上方下载）。</div>
+        </article>
+        <article class="tax-card" style="border-left:4px solid #7c3aed">
+          <div class="tax-head">
+            <h4>高速 ETC 门架流水</h4>
+            <a class="dl" href="../data/sim/modes/d3_etc_gantry.csv" download>下载 CSV</a>
+          </div>
+          <div class="tax-meta">
+            <span><b>载体</b> 高速公路车辆（装 ETC 的）</span>
+            <span><b>结构</b> 门架序列（按里程分段计费）</span>
+            <span><b>粒度</b> 秒级时间 / 门架里程点</span>
+          </div>
+          <div class="tax-grid">
+            <div class="can"><b>✅ 能回答</b><p>城际出行 OD、高速路网流量分配、分车型货运量、跨省通道分析、收费稽核。</p></div>
+            <div class="cannot"><b>⛔ 不能回答</b><p>普通国省道与城市道路（门架只在高速上）、未装 ETC 车辆（走人工车道的那部分被系统性遗漏）。</p></div>
+          </div>
+          <p class="pit"><b>⚠️ 典型陷阱</b> 只覆盖高速，用它推断「城际总出行量」会系统性偏低；vehicle_class 是收费类别不是真实车型。</p>
+          <p class="fields"><b>字段</b> obu_hash 车载单元哈希｜gantry_id 门架｜pass_time 通过时间｜vehicle_class 收费车型｜toll_cny 计费金额｜province 归属省份</p>
+          <p class="ref"><b>真实参照</b> 全国高速 ETC 门架系统（2020 年后全网联网）</p>
+          <div class="table-wrap"><table class="sample"><thead><tr><th>obu_hash</th><th>gantry_id</th><th>pass_time</th><th>vehicle_class</th><th>toll_cny</th><th>province</th></tr></thead>
+            <tbody><tr><td>OBUA316C</td><td>GT3100</td><td>2026-05-18 08:07:00</td><td>k1</td><td>20.44</td><td>浙</td></tr><tr><td>OBUA316C</td><td>GT3101</td><td>2026-05-18 08:43:00</td><td>h2</td><td>21.11</td><td>苏</td></tr><tr><td>OBUF40AF</td><td>GT3100</td><td>2026-05-18 07:41:00</td><td>k1</td><td>20.7</td><td>苏</td></tr><tr><td>OBUF40AF</td><td>GT3101</td><td>2026-05-18 08:19:00</td><td>k1</td><td>24.4</td><td>浙</td></tr><tr><td>OBU379E3</td><td>GT3100</td><td>2026-05-18 08:42:00</td><td>k1</td><td>29.52</td><td>皖</td></tr><tr><td>OBU379E3</td><td>GT3101</td><td>2026-05-18 09:14:00</td><td>k2</td><td>11.02</td><td>苏</td></tr></tbody></table></div>
+          <div class="cap">样本前 6 行（完整文件见上方下载）。</div>
+        </article></div>
+    </section>
+
+    <section class="cat-block">
+      <h3 id="cat-E" style="color:#db2777">E · 聚合衍生 <span class="en">Aggregated products</span></h3>
+      <p class="cat-desc">已经<b>脱敏统计好的成品</b>：速度指数、网格 OD 等。</p>
+      <div class="tax-gridwrap">
+        <article class="tax-card" style="border-left:4px solid #db2777">
+          <div class="tax-head">
+            <h4>路段速度指数</h4>
+            <a class="dl" href="../data/sim/modes/e1_link_speed.csv" download>下载 CSV</a>
+          </div>
+          <div class="tax-meta">
+            <span><b>载体</b> 路段（不是车辆）</span>
+            <span><b>结构</b> 路段 × 时间片的聚合指标</span>
+            <span><b>粒度</b> 5 分钟 / 路段级</span>
+          </div>
+          <div class="tax-grid">
+            <div class="can"><b>✅ 能回答</b><p>全城拥堵指数、路段级速度热力图、拥堵时空传播、长期改善效果评估、无隐私顾虑地公开发布。</p></div>
+            <div class="cannot"><b>⛔ 不能回答</b><p>任何个体轨迹（已被聚合抹去）、具体是哪些车造成拥堵、路径选择。</p></div>
+          </div>
+          <p class="pit"><b>⚠️ 典型陷阱</b> sample_cnt 很小时速度极不稳定（3 辆车的均值不代表路段）；很多商业产品的算法不公开，跨城市/跨年份不可直接比较。</p>
+          <p class="fields"><b>字段</b> link_id 路段｜ts_5min 时间片｜speed_kmh 平均速度｜free_flow_kmh 自由流速度｜congestion_idx 拥堵指数（自由流/实际）｜sample_cnt 参与计算的样本车数</p>
+          <p class="ref"><b>真实参照</b> 高德/百度拥堵指数、TomTom Traffic Index、Uber Movement</p>
+          <div class="table-wrap"><table class="sample"><thead><tr><th>link_id</th><th>ts_5min</th><th>speed_kmh</th><th>free_flow_kmh</th><th>congestion_idx</th><th>sample_cnt</th></tr></thead>
+            <tbody><tr><td>LK5000</td><td>2026-05-18 07:00:00</td><td>65.5</td><td>80</td><td>1.22</td><td>111</td></tr><tr><td>LK5000</td><td>2026-05-18 07:05:00</td><td>59.9</td><td>80</td><td>1.34</td><td>84</td></tr><tr><td>LK5000</td><td>2026-05-18 07:10:00</td><td>60.8</td><td>80</td><td>1.32</td><td>121</td></tr><tr><td>LK5000</td><td>2026-05-18 07:15:00</td><td>62.9</td><td>80</td><td>1.27</td><td>33</td></tr><tr><td>LK5000</td><td>2026-05-18 07:20:00</td><td>67.3</td><td>80</td><td>1.19</td><td>28</td></tr><tr><td>LK5000</td><td>2026-05-18 07:25:00</td><td>70.0</td><td>80</td><td>1.14</td><td>106</td></tr></tbody></table></div>
+          <div class="cap">样本前 6 行（完整文件见上方下载）。</div>
+        </article>
+        <article class="tax-card" style="border-left:4px solid #db2777">
+          <div class="tax-head">
+            <h4>网格 OD 流量（脱敏发布态）</h4>
+            <a class="dl" href="../data/sim/modes/e2_grid_od_flow.csv" download>下载 CSV</a>
+          </div>
+          <div class="tax-meta">
+            <span><b>载体</b> 人群流量（个体已抹除）</span>
+            <span><b>结构</b> 网格 × 网格 × 时段的计数矩阵</span>
+            <span><b>粒度</b> 小时级 / 500 米网格</span>
+          </div>
+          <div class="tax-grid">
+            <div class="can"><b>✅ 能回答</b><p>宏观通勤流向、职住平衡、片区吸引与产生量、多方式对比、可公开发表与共享。</p></div>
+            <div class="cannot"><b>⛔ 不能回答</b><p>个体出行链、具体路径、精确起终点（已被网格模糊化）、小样本人群（常被抑制为 0 或空）。</p></div>
+          </div>
+          <p class="pit"><b>⚠️ 典型陷阱</b> 网格边界会切开真实活动中心（模块化谬误）；小于阈值的流量常被隐去，直接求和会少算总量。</p>
+          <p class="fields"><b>字段</b> hour 时段｜grid_from/grid_to 起止网格编号｜trips 出行次数｜mode 出行方式｜grid_size_m 网格边长米</p>
+          <p class="ref"><b>真实参照</b> 联通/移动智慧足迹产品、Google/Apple 移动趋势报告、LEHD LODES</p>
+          <div class="table-wrap"><table class="sample"><thead><tr><th>hour</th><th>grid_from</th><th>grid_to</th><th>trips</th><th>mode</th><th>grid_size_m</th></tr></thead>
+            <tbody><tr><td>7</td><td>G10</td><td>G11</td><td>62</td><td>taxi</td><td>500</td></tr><tr><td>7</td><td>G12</td><td>G00</td><td>56</td><td>bike</td><td>500</td></tr><tr><td>7</td><td>G02</td><td>G22</td><td>445</td><td>bus</td><td>500</td></tr><tr><td>7</td><td>G11</td><td>G20</td><td>259</td><td>taxi</td><td>500</td></tr><tr><td>7</td><td>G20</td><td>G21</td><td>96</td><td>taxi</td><td>500</td></tr><tr><td>7</td><td>G20</td><td>G02</td><td>292</td><td>metro</td><td>500</td></tr></tbody></table></div>
+          <div class="cap">样本前 6 行（完整文件见上方下载）。</div>
+        </article></div>
+    </section>
+
+    <section class="cat-block">
+      <h3 id="cat-F" style="color:#0284c7">F · 其他模态与粗定位 <span class="en">Other modalities</span></h3>
+      <p class="cat-desc">船舶 AIS、手机信令等<b>非陆路 / 粗定位</b>数据。</p>
+      <div class="tax-gridwrap">
+        <article class="tax-card" style="border-left:4px solid #0284c7">
+          <div class="tax-head">
+            <h4>船舶 AIS 报文</h4>
+            <a class="dl" href="../data/sim/modes/f1_ship_ais.csv" download>下载 CSV</a>
+          </div>
+          <div class="tax-meta">
+            <span><b>载体</b> 船舶（海运/内河）</span>
+            <span><b>结构</b> 连续点序列（但无路网约束）</span>
+            <span><b>粒度</b> 分钟级不等间隔 / 公里级尺度</span>
+          </div>
+          <div class="tax-grid">
+            <div class="can"><b>✅ 能回答</b><p>航线识别、港口停泊与等泊时间、贸易流量代理指标、碳排放估算、渔船作业区识别。</p></div>
+            <div class="cannot"><b>⛔ 不能回答</b><p>船上货物明细、关闭 AIS 期间的行为（暗船）、内陆运输衔接。</p></div>
+          </div>
+          <p class="pit"><b>⚠️ 典型陷阱</b> 海面没有路网，所有基于「地图匹配」的方法直接失效；采样间隔随航速与设备变化极大；AIS 可被人为关闭。</p>
+          <p class="fields"><b>字段</b> mmsi 船舶识别码｜ts 时间｜lon/lat 坐标｜sog_kn 对地航速（节）｜cog_deg 对地航向｜nav_status 航行状态｜draught_m 吃水深度</p>
+          <p class="ref"><b>真实参照</b> 全球 AIS 公开数据（如 Danish AIS、Marine Cadastre）</p>
+          <div class="table-wrap"><table class="sample"><thead><tr><th>mmsi</th><th>ts</th><th>lon</th><th>lat</th><th>sog_kn</th><th>cog_deg</th><th>nav_status</th><th>draught_m</th></tr></thead>
+            <tbody><tr><td>412346402</td><td>2026-05-18 07:00:00</td><td>121.964963</td><td>30.852805</td><td>14.6</td><td>250</td><td>under_way</td><td>4.7</td></tr><tr><td>412346402</td><td>2026-05-18 07:06:00</td><td>122.012233</td><td>30.843963</td><td>12.1</td><td>95</td><td>under_way</td><td>7.8</td></tr><tr><td>412346402</td><td>2026-05-18 07:12:00</td><td>122.037214</td><td>30.860706</td><td>9.5</td><td>290</td><td>under_way</td><td>12.2</td></tr><tr><td>412346402</td><td>2026-05-18 07:18:00</td><td>122.080193</td><td>30.841382</td><td>11.5</td><td>240</td><td>under_way</td><td>7.8</td></tr><tr><td>412346402</td><td>2026-05-18 07:28:00</td><td>122.113107</td><td>30.841328</td><td>7.8</td><td>215</td><td>under_way</td><td>12.4</td></tr><tr><td>412346402</td><td>2026-05-18 07:31:00</td><td>122.134308</td><td>30.846619</td><td>14.1</td><td>200</td><td>under_way</td><td>5.7</td></tr></tbody></table></div>
+          <div class="cap">样本前 6 行（完整文件见上方下载）。</div>
+        </article>
+        <article class="tax-card" style="border-left:4px solid #0284c7">
+          <div class="tax-head">
+            <h4>手机信令 / 基站定位</h4>
+            <a class="dl" href="../data/sim/modes/f2_pedestrian_signal.csv" download>下载 CSV</a>
+          </div>
+          <div class="tax-meta">
+            <span><b>载体</b> 持手机的人（全模式，不限交通工具）</span>
+            <span><b>结构</b> 事件触发的粗定位点序列</span>
+            <span><b>粒度</b> 不等间隔（分钟~小时）/ 数百米精度</span>
+          </div>
+          <div class="tax-grid">
+            <div class="can"><b>✅ 能回答</b><p>全人群全方式出行（唯一能覆盖步行的数据）、职住识别、跨城迁徙、大范围人口热力、疫情/活动人流管控。</p></div>
+            <div class="cannot"><b>⛔ 不能回答</b><p>具体交通方式（走路还是坐车分不清）、精确路径、小尺度空间行为（精度本身就有几百米）。</p></div>
+          </div>
+          <p class="pit"><b>⚠️ 典型陷阱</b> 「乒乓切换」——人不动位置也会在基站间反复跳，会被误判为高速移动；精度字段必须参与分析而不是忽略；隐私敏感度最高。</p>
+          <p class="fields"><b>字段</b> user_hash 用户哈希｜ts 时间｜cell_lon/cell_lat 基站或定位中心坐标｜accuracy_m 定位精度（米，越大越粗）｜cell_id 小区编号｜event_type handover切换/periodic周期上报/call通话</p>
+          <p class="ref"><b>真实参照</b> 运营商智慧足迹类产品、学术界手机信令 CDR 研究数据</p>
+          <div class="table-wrap"><table class="sample"><thead><tr><th>user_hash</th><th>ts</th><th>cell_lon</th><th>cell_lat</th><th>accuracy_m</th><th>cell_id</th><th>event_type</th></tr></thead>
+            <tbody><tr><td>UA006AE</td><td>2026-05-18 07:00:00</td><td>120.307519</td><td>31.551944</td><td>180</td><td>CELL0001</td><td>periodic</td></tr><tr><td>UA006AE</td><td>2026-05-18 07:07:00</td><td>120.307519</td><td>31.551944</td><td>180</td><td>CELL0001</td><td>call</td></tr><tr><td>UA006AE</td><td>2026-05-18 07:14:00</td><td>120.307519</td><td>31.551944</td><td>250</td><td>CELL0001</td><td>call</td></tr><tr><td>UA006AE</td><td>2026-05-18 07:29:00</td><td>120.307519</td><td>31.551944</td><td>800</td><td>CELL0001</td><td>handover</td></tr><tr><td>UA006AE</td><td>2026-05-18 07:33:00</td><td>120.287449</td><td>31.569847</td><td>500</td><td>CELL0000</td><td>handover</td></tr><tr><td>UA006AE</td><td>2026-05-18 07:37:00</td><td>120.307519</td><td>31.551944</td><td>500</td><td>CELL0001</td><td>call</td></tr></tbody></table></div>
+          <div class="cap">样本前 6 行（完整文件见上方下载）。</div>
+        </article></div>
+    </section>
+
+  <hr/>
+  <h2>五、一张大对照表（17 行速查）</h2>
+  <div class="table-wrap" style="overflow-x:auto;">
+  <table class="bigtable">
+    <thead><tr>
+      <th>类</th><th>数据集</th><th>粒度</th><th>能回答</th><th>不能回答</th><th>典型陷阱</th><th>真实参照</th>
+    </tr></thead>
+    <tbody><tr><td><span class='dot' style='background:车载/手持终端<b>逐点上报</b>：每个时刻一个坐标点，串起来就是轨迹。'></span>A</td><td><b>出租车车载 GPS</b><br/><span class='muted'>巡游出租车</span></td><td>秒级时间 / 米级空间</td><td>完整行驶路径、速度画像、空车 vs 载客对比、OD 推断、热点识别、路径选择偏好。</td><td>乘客是谁、车费多少、乘客下车后去了哪（换乘链断在下客点）。</td><td>载客字段翻转点才是真正的上下客时刻；若只按「速度=0」找停靠，会把红灯误判成载客交易。</td><td>本项目北京 T-Drive 2008、深圳 2014</td></tr><tr><td><span class='dot' style='background:车载/手持终端<b>逐点上报</b>：每个时刻一个坐标点，串起来就是轨迹。'></span>A</td><td><b>网约车订单轨迹</b><br/><span class='muted'>网约车（平台派单）</span></td><td>20 秒级 / 米级</td><td>接驾距离与时长、平台派单效率、空驶结构（待单 vs 接驾）、订单级完整链路。</td><td>巡游揽客行为（本来就不存在）、未上平台的黑车、平台之外的出行。</td><td>空驶期 order_id 为空，直接按 order_id 分组会丢掉一半里程；接驾里程常被误算进「载客里程」。</td><td>滴滴 GAIA 开放数据集（成都/西安订单与轨迹）</td></tr><tr><td><span class='dot' style='background:车载/手持终端<b>逐点上报</b>：每个时刻一个坐标点，串起来就是轨迹。'></span>A</td><td><b>公交车 GPS 与到站偏差</b><br/><span class='muted'>常规公交</span></td><td>30~45 秒级 / 站点级语义</td><td>线路运行时间、站间车速、到站准点率、串车（bunching）识别、专用道效果评估。</td><td>车上有几个人、乘客从哪上到哪下（要配合刷卡数据）、乘客等待时间。</td><td>同一线路多辆车轨迹几乎重叠，做空间聚类会把线路当成「热点」；sched_dev_s 是累积量不是瞬时量。</td><td>各地公交集团 AVL 数据、GTFS-Realtime</td></tr><tr><td><span class='dot' style='background:车载/手持终端<b>逐点上报</b>：每个时刻一个坐标点，串起来就是轨迹。'></span>A</td><td><b>货运车辆北斗监控</b><br/><span class='muted'>营运货车（部标北斗终端）</span></td><td>1~5 分钟级 / 城际尺度</td><td>干线物流通道识别、装卸点（物流枢纽）挖掘、超速与疲劳驾驶合规、空重载里程比。</td><td>货物是什么、运费多少、城市内最后一公里配送细节（采样太稀）。</td><td>采样间隔按分钟计，直线插值会「穿墙」跨越河流山体；长时间零速是装卸不是故障，别当异常删掉。</td><td>全国道路货运车辆公共监管平台、部标 JT/T 808 终端数据</td></tr><tr><td><span class='dot' style='background:车载/手持终端<b>逐点上报</b>：每个时刻一个坐标点，串起来就是轨迹。'></span>A</td><td><b>共享电单车骑行轨迹</b><br/><span class='muted'>共享电单车 / 助力车</span></td><td>15 秒级 / 亚米级抖动明显</td><td>非机动车道使用、违规驶出电子围栏、短距接驳（地铁最后一公里）、电量与调度需求。</td><td>骑车人是谁、有没有戴头盔、是否载人（数据里看不出来）。</td><td>轨迹经常落在机动车路网之外（人行道、小巷、绿道），用汽车路网做地图匹配会大面积匹配失败。</td><td>各城市共享单车/电单车监管平台接口</td></tr><tr><td><span class='dot' style='background:只有<b>起点和终点</b>（OD），中间轨迹根本不存在。'></span>B</td><td><b>共享单车骑行订单</b><br/><span class='muted'>无桩共享单车</span></td><td>行程级 / 米级起止点</td><td>OD 分布、骑行时长与距离分布、地铁站接驳量、早晚高峰潮汐、投放调度需求。</td><td>走了哪条路（中间轨迹根本不存在）、路径选择偏好、途中是否停顿。</td><td>distance_m 通常是「计费距离」而非直线距离，拿它算平均速度会偏大；不能做地图匹配和路径分析。</td><td>摩拜/哈啰开放数据、Divvy / Citi Bike 公开 trip 数据</td></tr><tr><td><span class='dot' style='background:只有<b>起点和终点</b>（OD），中间轨迹根本不存在。'></span>B</td><td><b>有桩公共自行车行程</b><br/><span class='muted'>有桩公共自行车</span></td><td>行程级 / 站点级空间</td><td>站点间流量矩阵、站点满溢与空桩、会员 vs 散客行为差异、调度车调运计划。</td><td>任何比站点更细的空间分析——你连起点坐标都没有，只有一个站名。</td><td>位置精度被站点锁死（一个站覆盖数百米）；必须外接站点坐标表才能上地图，站点还会新增/迁移导致 ID 变化。</td><td>Capital Bikeshare、杭州公共自行车、巴黎 Vélib'</td></tr><tr><td><span class='dot' style='background:只有<b>起点和终点</b>（OD），中间轨迹根本不存在。'></span>B</td><td><b>出租车计价器行程记录</b><br/><span class='muted'>巡游出租车（计价器/发票系统）</span></td><td>行程级 / 米级起止点</td><td>出行需求 OD、票价与里程关系、时段需求曲线、机场火车站集散量、支付方式演变。</td><td>行驶路径与绕路判定（没有轨迹）、空驶行为（只记录载客段）、拥堵成因。</td><td>只记录成功交易，空驶完全不可见——用它估算车辆利用率会严重偏高；里程是计价里程含空驶爬行。</td><td>NYC TLC Trip Record Data（全球最常用的出行数据集之一）</td></tr><tr><td><span class='dot' style='background:离散的<b>刷卡或交易事件</b>，按个体卡号配对还原出行。'></span>C</td><td><b>地铁进出站刷卡（AFC）</b><br/><span class='muted'>轨道交通乘客</span></td><td>秒级时间 / 车站级空间</td><td>全网 OD 客流矩阵、断面客流、换乘量估算、票价清分、通勤人群识别（跨天配对同一卡号）。</td><td>乘客走了哪条换乘路径（同一 OD 常有 2~3 条可行路径，只能靠模型分配）、车厢内拥挤度、站外接驳方式。</td><td>换乘路径不可观测，是这类数据的先天盲区；同卡号跨天配对涉及个体追踪，属敏感操作需脱敏与合规审查。</td><td>各城市轨道 AFC 清分数据、上海/北京公交卡研究数据集</td></tr><tr><td><span class='dot' style='background:离散的<b>刷卡或交易事件</b>，按个体卡号配对还原出行。'></span>C</td><td><b>公交刷卡（仅上车，无下车）</b><br/><span class='muted'>常规公交乘客</span></td><td>秒级时间 / 站点级空间</td><td>线路上车客流、站点上客排名、换乘识别（同卡短时间内二次刷卡）、通勤 OD 的「起点」一半。</td><td>下车站在哪——数据里根本没有。必须用出行链推断（下一次上车站≈本次下车站；当天最后一程≈当天第一程起点）。</td><td>一票制城市普遍只刷上车，直接统计 OD 会得到一半为空的矩阵；推断出的下车站是估计值，必须标注不确定性。</td><td>国内多数一票制城市公交 IC 卡数据</td></tr><tr><td><span class='dot' style='background:设备<b>守在固定断面</b>，数经过的车或人，不区分个体。'></span>D</td><td><b>线圈 / 地磁检测器</b><br/><span class='muted'>断面上通过的所有车辆（不区分个体）</span></td><td>5 分钟聚合 / 单一断面</td><td>断面流量与占有率、拥堵演化曲线、基本图（流量-密度-速度关系）、信号配时评估、长期趋势（设备常年在岗）。</td><td>任何个体行为——它不知道是谁经过，也不知道车从哪来到哪去；无法做 OD 与路径。</td><td>设备故障导致成段缺失是常态（quality_flag），直接求均值会被 0 或空值污染；单点代表不了整条路。</td><td>加州 PeMS、各城市交通信号系统检测器数据</td></tr><tr><td><span class='dot' style='background:设备<b>守在固定断面</b>，数经过的车或人，不区分个体。'></span>D</td><td><b>卡口车牌识别（ANPR）</b><br/><span class='muted'>经过卡口的车辆（可识别到车）</span></td><td>秒级时间 / 卡口点位空间</td><td>卡口间行程时间、部分路径还原（把同一车牌串起来）、区域进出量、异常车辆追踪。</td><td>两个卡口之间走的具体路线（中间是黑箱）、没装卡口的路网、车内情况。</td><td>识别率不是 100%（confidence 低、遮挡、夜间），漏检会把一条路径拦腰截断；车牌本身是强个体标识，必须哈希脱敏。</td><td>各城市公安交管卡口数据、高速门架流水</td></tr><tr><td><span class='dot' style='background:设备<b>守在固定断面</b>，数经过的车或人，不区分个体。'></span>D</td><td><b>高速 ETC 门架流水</b><br/><span class='muted'>高速公路车辆（装 ETC 的）</span></td><td>秒级时间 / 门架里程点</td><td>城际出行 OD、高速路网流量分配、分车型货运量、跨省通道分析、收费稽核。</td><td>普通国省道与城市道路（门架只在高速上）、未装 ETC 车辆（走人工车道的那部分被系统性遗漏）。</td><td>只覆盖高速，用它推断「城际总出行量」会系统性偏低；vehicle_class 是收费类别不是真实车型。</td><td>全国高速 ETC 门架系统（2020 年后全网联网）</td></tr><tr><td><span class='dot' style='background:已经<b>脱敏统计好的成品</b>：速度指数、网格 OD 等。'></span>E</td><td><b>路段速度指数</b><br/><span class='muted'>路段（不是车辆）</span></td><td>5 分钟 / 路段级</td><td>全城拥堵指数、路段级速度热力图、拥堵时空传播、长期改善效果评估、无隐私顾虑地公开发布。</td><td>任何个体轨迹（已被聚合抹去）、具体是哪些车造成拥堵、路径选择。</td><td>sample_cnt 很小时速度极不稳定（3 辆车的均值不代表路段）；很多商业产品的算法不公开，跨城市/跨年份不可直接比较。</td><td>高德/百度拥堵指数、TomTom Traffic Index、Uber Movement</td></tr><tr><td><span class='dot' style='background:已经<b>脱敏统计好的成品</b>：速度指数、网格 OD 等。'></span>E</td><td><b>网格 OD 流量（脱敏发布态）</b><br/><span class='muted'>人群流量（个体已抹除）</span></td><td>小时级 / 500 米网格</td><td>宏观通勤流向、职住平衡、片区吸引与产生量、多方式对比、可公开发表与共享。</td><td>个体出行链、具体路径、精确起终点（已被网格模糊化）、小样本人群（常被抑制为 0 或空）。</td><td>网格边界会切开真实活动中心（模块化谬误）；小于阈值的流量常被隐去，直接求和会少算总量。</td><td>联通/移动智慧足迹产品、Google/Apple 移动趋势报告、LEHD LODES</td></tr><tr><td><span class='dot' style='background:船舶 AIS、手机信令等<b>非陆路 / 粗定位</b>数据。'></span>F</td><td><b>船舶 AIS 报文</b><br/><span class='muted'>船舶（海运/内河）</span></td><td>分钟级不等间隔 / 公里级尺度</td><td>航线识别、港口停泊与等泊时间、贸易流量代理指标、碳排放估算、渔船作业区识别。</td><td>船上货物明细、关闭 AIS 期间的行为（暗船）、内陆运输衔接。</td><td>海面没有路网，所有基于「地图匹配」的方法直接失效；采样间隔随航速与设备变化极大；AIS 可被人为关闭。</td><td>全球 AIS 公开数据（如 Danish AIS、Marine Cadastre）</td></tr><tr><td><span class='dot' style='background:船舶 AIS、手机信令等<b>非陆路 / 粗定位</b>数据。'></span>F</td><td><b>手机信令 / 基站定位</b><br/><span class='muted'>持手机的人（全模式，不限交通工具）</span></td><td>不等间隔（分钟~小时）/ 数百米精度</td><td>全人群全方式出行（唯一能覆盖步行的数据）、职住识别、跨城迁徙、大范围人口热力、疫情/活动人流管控。</td><td>具体交通方式（走路还是坐车分不清）、精确路径、小尺度空间行为（精度本身就有几百米）。</td><td>「乒乓切换」——人不动位置也会在基站间反复跳，会被误判为高速移动；精度字段必须参与分析而不是忽略；隐私敏感度最高。</td><td>运营商智慧足迹类产品、学术界手机信令 CDR 研究数据</td></tr></tbody>
+  </table></div>
+
+  <hr/>
+  <h2>六、怎么用这份家族图鉴</h2>
+  <ul>
+    <li><b>选型前</b>：拿到一份新数据，先问「它属于 A~F 哪一类？」——类别直接决定可分析性。</li>
+    <li><b>写需求前</b>：对照每类的「不能回答」，提前砍掉做不到的分析题目，避免白做。</li>
+    <li><b>接数据前</b>：读「典型陷阱」，把清洗和校验规则先列出来（如公交只刷上车的 OD 半空、ETC 只覆盖高速……）。</li>
+    <li><b>教学/练手</b>：17 个 CSV 是轻量练习数据，比几个 G 真实数据更适合跑通管线。</li>
+  </ul>
+  <div class="why">
+    <span class="icon">🧩</span>
+    <div>本项目的北京/深圳/无锡出租车数据 = A 类的「富样本」参照；其余 16 种模拟数据集则把交通数据的<b>其他分支与典型坑</b>单独造出来给你看。读懂家族，再看真实数据就知道该先查哪里。</div>
+  </div>
+
+  <div style="display:flex;gap:12px;flex-wrap:wrap;margin:30px 0;">
+    <a class="btn ghost" href="../index.html">← 返回主页</a>
+    <a class="btn" href="../datasets/simulation.html">数据质量「毛病」图鉴 →</a>
+    <a class="btn ghost" href="../guide/sensing.html">数据怎么被采集 →</a>
+  </div>
+</div></main>
+
+<footer class="site-footer"><div class="container"><div class="row">
+  <div>出租车轨迹数据分析 · 从 GPS 到分析</div>
+  <div>数据归各自来源所有 · 代码 MIT</div>
+</div></div></footer>
+<button class="to-top" aria-label="返回顶部">↑</button>
+<script src="../assets/js/main.js"></script>
+</body>
+</html>

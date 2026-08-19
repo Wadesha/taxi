@@ -17,6 +17,8 @@
       <div class="nav-links">
         <a href="index.html">主页</a>
         <a href="guide/gps.html">基础概念</a>
+        <a href="guide/sensing.html">采集原理</a>
+        <a href="datasets/taxonomy.html">家族图鉴</a>
         <a href="#datasets">数据集</a>
         <a href="analysis/overview.html">分析</a>
         <a href="methodology/pipeline.html">方法</a>
@@ -118,6 +120,8 @@
             不懂这些，后面看到 lon/lat 只会当成两个数字。</p>
             <a class="link" href="guide/gps.html">去读「GPS 与经纬度」→</a>
             &nbsp;·&nbsp;
+            <a class="link" href="guide/sensing.html">「数据怎么被采集」→</a>
+            &nbsp;·&nbsp;
             <a class="link" href="guide/trajectory.html">「轨迹数据与字段」→</a>
           </div>
         </div>
@@ -198,10 +202,19 @@
             <span class="arrow">了解无锡数据 →</span>
           </div>
         </a>
+        <a class="card-link" href="datasets/taxonomy.html">
+          <div class="card guide">
+            <div class="accent-bar"></div>
+            <h3>交通数据家族图鉴</h3>
+            <p>出租车只是交通时空数据<b>六类（A~F）里的 A 类</b>。这一页用 <b>17 个模拟数据集</b>把网约车、公交、单车、地铁、
+            卡口、ETC、AIS、手机信令等典型交通数据的结构、能答/不能答、典型陷阱一次讲清。选型与避坑手册。</p>
+            <span class="arrow">看家族图鉴 →</span>
+          </div>
+        </a>
         <a class="card-link" href="datasets/simulation.html">
           <div class="card guide">
             <div class="accent-bar"></div>
-            <h3>模拟数据集图鉴</h3>
+            <h3>数据质量「毛病」图鉴</h3>
             <p>12 个小型模拟数据集，把这类轨迹数据<b>所有可能出问题的情况</b>逐一演示：
             缺失、越界、常量传感器、稀疏、混合分隔符、时间戳混乱…… 接新数据前的体检清单。</p>
             <span class="arrow">看图鉴 →</span>
@@ -243,7 +256,7 @@
       <pre><code>taxi/
 ├── index.html                # 本页：总览 + 学习路径
 ├── guide/                    # 📖 基础概念（GPS、轨迹格式）
-├── datasets/                 # 🗂️ 三个数据集详情 + simulation.html（模拟图鉴）
+├── datasets/                 # 🗂️ 三个数据集详情 + taxonomy.html（家族图鉴）+ simulation.html（质量图鉴）
 ├── analysis/                 # 🔬 分析方法与结果（含模拟演示）
 ├── methodology/              # 🛠️ 数据管线 + 部署指南
 ├── assets/
@@ -252,7 +265,11 @@
 │   └── img/  分析图（真实+模拟）
 ├── data/
 │   ├── 每城 50 行样本 + summary.json
-│   └── sim/  12 个模拟数据集 CSV + manifest.json
+│   └── sim/  12 个质量模拟 CSV + manifest.json
+│       └── modes/  17 个家族模拟 CSV + manifest_modes.json
+├── guide/                    # 📖 基础概念（GPS、采集原理）
+│   ├── gps.html               # 经纬度 / WGS-84 / 坐标偏移
+│   └── sensing.html           # GNSS 原理 / 误差 / 上报链路 / 隐私
 ├── scripts/                  # Python 脚本（可复现）
 ├── raw/                      # ⚠️ 原始大数据（已迁归档仓库，git 忽略）
 └── docs/                     # 数据说明文档</code></pre>

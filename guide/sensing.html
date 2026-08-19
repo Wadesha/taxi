@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>数据是怎么被采集的 · 从卫星到文件</title>
+<meta name="description" content="轨迹数据底层原理：GNSS 怎么定位、四类误差源、车载上报链路、采样间隔决定能做的分析、五种定位技术、WGS-84/GCJ-02/BD-09 坐标偏移、隐私脱敏四层级。" />
+<link rel="stylesheet" href="../assets/css/style.css" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%237c3aed'/%3E%3Ctext x='16' y='22' font-size='18' text-anchor='middle' fill='white' font-family='Arial' font-weight='bold'%3E%E2%9A%99%3C/text%3E%3C/svg%3E" />
+<style>
+.sens-hero{background:radial-gradient(ellipse 800px 360px at 60% -120px,var(--accent-soft),transparent 60%),var(--bg);padding:44px 0 26px}
+.sens-hero h1{font-size:2.2rem;margin-bottom:.25em}
+.sens-hero .lede{font-size:1.08rem;color:var(--text-soft);max-width:780px}
+.diagram{border:1px solid var(--border);border-radius:14px;background:var(--bg-elev);padding:14px;margin:16px 0}
+.diagram svg{width:100%;height:auto;display:block}
+.cap{font-size:.78rem;color:var(--text-muted);margin-top:6px;text-align:center}
+.mat{width:100%;border-collapse:collapse;font-size:.86rem;margin:14px 0}
+.mat th,.mat td{border:1px solid var(--border);padding:8px 10px;vertical-align:top;text-align:left}
+.mat th{background:var(--bg-muted);color:var(--text);font-weight:600}
+.mat td code{font-size:.85em}
+.callout.note,.callout.warn,.callout.ok{border-left:3px solid var(--accent);background:var(--bg-muted);padding:12px 14px;border-radius:8px;margin:14px 0}
+.callout.warn{border-left-color:var(--beijing)}
+.callout.ok{border-left-color:var(--wuxi)}
+.steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:16px 0}
+.step{border:1px solid var(--border);border-radius:12px;padding:12px 14px;background:var(--card)}
+.step .n{display:inline-flex;width:26px;height:26px;border-radius:50%;background:var(--accent);color:#fff;align-items:center;justify-content:center;font-weight:700;font-size:.85rem;margin-bottom:8px}
+.lvl{display:flex;align-items:center;gap:12px;margin:10px 0}
+.lvl .bar{height:26px;border-radius:6px;display:flex;align-items:center;padding-left:10px;color:#fff;font-size:.8rem;font-weight:600}
+.pill{display:inline-block;padding:2px 9px;border-radius:999px;font-size:.76rem;border:1px solid var(--border);margin:2px 3px}
+.pill.r{color:var(--beijing);border-color:color-mix(in srgb,var(--beijing) 40%,transparent)}
+.pill.g{color:var(--wuxi);border-color:color-mix(in srgb,var(--wuxi) 40%,transparent)}
+</style>
+</head>
+<body>
+
+<header class="site-header"><div class="container">
+  <nav class="nav" aria-label="主导航">
+    <a class="brand" href="../index.html"><span class="brand-mark" aria-hidden="true"></span><span>轨迹数据分析</span></a>
+    <div class="nav-links">
+      <a href="../index.html">主页</a>
+      <a href="../guide/gps.html">基础概念</a>
+      <a href="../index.html#datasets">数据集</a>
+      <a href="../analysis/overview.html">分析</a>
+      <a href="../methodology/pipeline.html">方法</a>
+    </div>
+    <button class="theme-toggle" aria-label="切换主题">☾</button>
+  </nav>
+</div></header>
+
+<section class="sens-hero"><div class="container">
+  <div class="crumbs" style="margin-bottom:10px">
+    <a href="../index.html">主页</a><span class="sep">/</span>
+    <a href="../guide/gps.html">基础概念</a><span class="sep">/</span>
+    <span>数据是怎么被采集的</span>
+  </div>
+  <span class="section-eyebrow" style="color:var(--guide);">基础概念 · 底层原理</span>
+  <h1>数据是怎么被采集的：从卫星到文件</h1>
+  <p class="lede">你看到的每一行 <code>veh_id, ts, lon, lat, speed</code>，背后是一整套硬件与链路的产物。
+  读懂这条链路，你才会明白：为什么坐标有 5~15 米误差、为什么轨迹会「穿墙」、为什么有的数据只有 OD、为什么隐私脱敏没那么简单。这一页讲「更底层」的东西。</p>
+</div></section>
+
+<main><div class="container-narrow">
+
+  <hr/>
+  <h2>一、一个 GPS 点是怎么出生的</h2>
+  <p>车载终端里有一个 GNSS 模块（GPS / 北斗 / GLONASS / Galileo），它做的事本质很简单：<b>听卫星报时，算自己离卫星多远，三个球面交出一个点</b>。</p>
+  <div class="diagram">
+    <svg viewBox="0 0 760 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="GNSS 三边定位原理">
+      <!-- 卫星 -->
+      <circle cx="140" cy="60" r="16" fill="#2563eb"/><text x="140" y="64" text-anchor="middle" fill="#fff" font-size="11">S1</text>
+      <circle cx="380" cy="40" r="16" fill="#2563eb"/><text x="380" y="44" text-anchor="middle" fill="#fff" font-size="11">S2</text>
+      <circle cx="620" cy="70" r="16" fill="#2563eb"/><text x="620" y="74" text-anchor="middle" fill="#fff" font-size="11">S3</text>
+      <!-- 三个测距球面（用圆近似） -->
+      <circle cx="140" cy="60" r="200" fill="none" stroke="#2563eb" stroke-width="1.5" stroke-dasharray="5 4" opacity=".5"/>
+      <circle cx="380" cy="40" r="210" fill="none" stroke="#7c3aed" stroke-width="1.5" stroke-dasharray="5 4" opacity=".5"/>
+      <circle cx="620" cy="70" r="190" fill="none" stroke="#16a085" stroke-width="1.5" stroke-dasharray="5 4" opacity=".5"/>
+      <!-- 接收机 -->
+      <circle cx="370" cy="240" r="10" fill="#d35400"/><text x="370" y="265" text-anchor="middle" fill="#d35400" font-size="11" font-weight="bold">接收机</text>
+      <!-- 连线 -->
+      <line x1="140" y1="60" x2="370" y2="240" stroke="#94a3b8" stroke-width="1"/>
+      <line x1="380" y1="40" x2="370" y2="240" stroke="#94a3b8" stroke-width="1"/>
+      <line x1="620" y1="70" x2="370" y2="240" stroke="#94a3b8" stroke-width="1"/>
+      <text x="250" y="150" fill="#475569" font-size="11">距离 = 信号传播时间 × 光速</text>
+      <text x="470" y="120" fill="#475569" font-size="11">三球相交 → 唯一位置</text>
+    </svg>
+    <div class="cap">三边（实际常需第 4 颗解钟差）定位：每颗卫星用「收到时间 − 发射时间」算出距离，距离球面相交处就是你的位置。</div>
+  </div>
+  <p>所以一行坐标并不是「测」出来的绝对真值，而是<b>解算</b>出来的估计值，天然带误差。下面的四类误差，决定了你数据的底噪：</p>
+  <table class="mat">
+    <thead><tr><th>误差源</th><th>成因</th><th>典型量级</th><th>对数据的影响</th></tr></thead>
+    <tbody>
+      <tr><td>大气延迟</td><td>信号穿过电离层/对流层被放慢</td><td>几米</td><td>坐标系统性偏移，晴雨不同</td></tr>
+      <tr><td>钟差</td><td>接收机钟与卫星原子钟不同步</td><td>几米~十几米</td><td>需用第 4 颗星或差分修正</td></tr>
+      <tr><td>多径（Multipath）</td><td>信号经高楼/地面反射后到达</td><td>1~10 米</td><td>城市峡谷里轨迹「跳变」「穿墙」的主因</td></tr>
+      <tr><td>星历/几何精度</td><td>可见卫星分布不好（HDOP 大）</td><td>1~5 米</td><td>高架、隧道口定位质量骤降</td></tr>
+    </tbody>
+  </table>
+  <div class="callout note"><span class="icon">📍</span><div>
+    <b>为什么轨迹会「穿墙」「飞点」？</b> 多半是多径 + 城市峡谷 + 直线插值叠加的结果。
+    北京 T-Drive、无锡数据里的零星离群点，根子就在这。清洗时不能简单「删离群」，要先判断是真实绕行还是定位噪点。</div></div>
+
+  <hr/>
+  <h2>二、从传感器到落盘文件：车载上报链路</h2>
+  <p>出租车/网约车/公交/货车上的 GNSS 模块每秒都在解算，但数据要变成你手里的 CSV，还要经过一整条链路。任何一环都会改变数据的<b>形态、频率、字段</b>：</p>
+  <div class="diagram">
+    <svg viewBox="0 0 900 150" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="车载数据上报链路">
+      <defs><marker id="a2" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#475569"/></marker></defs>
+      <rect x="10" y="50" width="150" height="56" rx="10" fill="#1e3a5f" stroke="#60a5fa" stroke-width="1.5"/>
+      <text x="85" y="74" text-anchor="middle" fill="#fff" font-size="12" font-weight="bold">① 传感器</text>
+      <text x="85" y="92" text-anchor="middle" fill="#bcd2f0" font-size="10">GPS/北斗 + IMU</text>
+      <line x1="160" y1="78" x2="200" y2="78" stroke="#475569" stroke-width="2" marker-end="url(#a2)"/>
+      <rect x="204" y="50" width="150" height="56" rx="10" fill="#26321f" stroke="#4ade80" stroke-width="1.5"/>
+      <text x="279" y="74" text-anchor="middle" fill="#fff" font-size="12" font-weight="bold">② 车载终端</text>
+      <text x="279" y="92" text-anchor="middle" fill="#bbd8b4" font-size="10">组包/加状态/计时</text>
+      <line x1="354" y1="78" x2="394" y2="78" stroke="#475569" stroke-width="2" marker-end="url(#a2)"/>
+      <rect x="398" y="50" width="150" height="56" rx="10" fill="#2d1a2f" stroke="#f472b6" stroke-width="1.5"/>
+      <text x="473" y="74" text-anchor="middle" fill="#fff" font-size="12" font-weight="bold">③ 无线通信</text>
+      <text x="473" y="92" text-anchor="middle" fill="#e5b8cf" font-size="10">4G/北斗短报文</text>
+      <line x1="548" y1="78" x2="588" y2="78" stroke="#475569" stroke-width="2" marker-end="url(#a2)"/>
+      <rect x="592" y="50" width="150" height="56" rx="10" fill="#1e3a5f" stroke="#60a5fa" stroke-width="1.5"/>
+      <text x="667" y="74" text-anchor="middle" fill="#fff" font-size="12" font-weight="bold">④ 服务端</text>
+      <text x="667" y="92" text-anchor="middle" fill="#bcd2f0" font-size="10">接收/校验/入库</text>
+      <line x1="742" y1="78" x2="782" y2="78" stroke="#475569" stroke-width="2" marker-end="url(#a2)"/>
+      <rect x="786" y="50" width="104" height="56" rx="10" fill="#26321f" stroke="#4ade80" stroke-width="1.5"/>
+      <text x="838" y="74" text-anchor="middle" fill="#fff" font-size="12" font-weight="bold">⑤ 文件</text>
+      <text x="838" y="92" text-anchor="middle" fill="#bbd8b4" font-size="10">CSV/TXT 归档</text>
+      <text x="450" y="135" text-anchor="middle" fill="#8794a6" font-size="11">每一环都可能在「频率、字段、精度」上打折——同一座城市不同车队的数据未必可比</text>
+    </svg>
+    <div class="cap">链路上的每一跳都可能改变数据：终端决定采样率、通信丢包、服务端做清洗/加密、落盘格式各异。</div>
+  </div>
+
+  <hr/>
+  <h2>三、采样间隔，决定你能做什么分析</h2>
+  <p>很多人忽略：<b>采样间隔不是技术细节，而是分析能力的「天花板」。</b> 1 秒一点和 5 分钟一点，能做的题目天差地别。下面这张表是「拿到数据先问自己」的清单：</p>
+  <table class="mat">
+    <thead><tr><th>采样间隔</th><th>代表数据</th><th>能做的分析</th><th>做不了 / 会失真</th></tr></thead>
+    <tbody>
+      <tr><td>1~5 秒</td><td>出租车 GPS、网约车</td><td>完整路径、瞬时速度、加减速、急转弯、地图匹配</td><td>—（几乎全能）</td></tr>
+      <tr><td>20~60 秒</td><td>公交 AVL、货车北斗</td><td>线路运行时间、站间速度、宏观轨迹</td><td>急加减速、短停被抹平</td></tr>
+      <tr><td>1~5 分钟</td><td>高速 ETC、干线北斗</td><td>城际 OD、通道流量</td><td>直线插值「穿墙」、城市内路径模糊</td></tr>
+      <tr><td>5~15 分钟聚合</td><td>线圈检测器、速度指数</td><td>断面流量、拥堵指数</td><td>个体轨迹（根本不存在）</td></tr>
+      <tr><td>行程级（仅 OD）</td><td>共享单车、计价器</td><td>OD 分布、时长距离</td><td>任何路径/地图匹配</td></tr>
+      <tr><td>数百米精度、分钟~小时</td><td>手机信令</td><td>全人群职住、迁徙</td><td>具体方式、精确路径</td></tr>
+    </tbody>
+  </table>
+  <div class="callout warn"><span class="icon">⚠️</span><div>
+    <b>别用 5 分钟采样的数据去做「急刹车分析」。</b> 两个相邻点之间发生了什么，数据里是真空。强行插值 = 编造。这一条是无数「分析翻车」的根源。</div></div>
+
+  <hr/>
+  <h2>四、五种定位技术：精度与适用场景</h2>
+  <p>「GPS 点」只是定位的一种。不同技术给出不同精度，也对应不同数据源（详见 <a href="../datasets/taxonomy.html">家族图鉴</a>）：</p>
+  <table class="mat">
+    <thead><tr><th>技术</th><th>典型精度</th><th>适用</th><th>局限</th></tr></thead>
+    <tbody>
+      <tr><td>GNSS 单点（GPS/北斗）</td><td>5~15 m</td><td>车载/手持通用</td><td>城市峡谷、隧道失效</td></tr>
+      <tr><td>差分 / RTK</td><td>0.1~1 m</td><td>高精地图、农机</td><td>需基准站，成本高</td></tr>
+      <tr><td>蜂窝基站定位</td><td>几十~几百 m</td><td>手机信令、室内外过渡</td><td>精度随基站密度变</td></tr>
+      <tr><td>WiFi / 蓝牙指纹</td><td>数 m~几十 m</td><td>室内定位</td><td>依赖指纹库</td></tr>
+      <tr><td>惯性（IMU）</td><td>漂移累积</td><td>隧道/高架短时補位</td><td>单独用会越漂越远</td></tr>
+    </tbody>
+  </table>
+
+  <hr/>
+  <h2>五、WGS-84 / GCJ-02 / BD-09：坐标偏移是国情</h2>
+  <p>这是国内数据最常见的「坑」：同一物理点，三套坐标系数值不同。天朝规定公开地图须用加密偏移坐标。</p>
+  <div class="steps">
+    <div class="step"><div class="n">84</div><b>WGS-84</b><p>GPS/北斗原始坐标。开源数据（如本项目北京/深圳/无锡）多为这种。</p></div>
+    <div class="step"><div class="n">02</div><b>GCJ-02</b><p>国测局加密偏移。高德、腾讯地图用此。与 WGS-84 差几十~几百米。</p></div>
+    <div class="step"><div class="n">09</div><b>BD-09</b><p>百度在 GCJ-02 上再偏移一次。百度地图用此。</p></div>
+  </div>
+  <div class="callout warn"><span class="icon">⚠️</span><div>
+    <b>把 WGS-84 的点直接叠到高德底图上，会整体偏出几十米到几百米。</b> 跨源融合前必须先统一坐标系（WGS-84 ⇄ GCJ-02 ⇄ BD-09 有公开转换公式）。更多见 <a href="../guide/gps.html">GPS 与经纬度</a>。</div></div>
+
+  <hr/>
+  <h2>六、隐私脱敏：四层级（但别以为 anonymized 就安全）</h2>
+  <p>交通轨迹是<b>高度敏感的个体行为数据</b>。脱敏不是「删掉姓名」就完事，常见四层：</p>
+  <div class="lvl"><div class="bar" style="width:200px;background:#d35400">L0 原始</div><div>完整坐标+时间+个体 ID。泄露即「知道某人何时在哪」。</div></div>
+  <div class="lvl"><div class="bar" style="width:240px;background:#d35400">L1 假名化</div><div>ID → 哈希（如 <code>veh_hash</code>）。人读不出，但<b>同一 ID 仍可重跟踪整条轨迹</b>。</div></div>
+  <div class="lvl"><div class="bar" style="width:230px;background:#d35400">L2 泛化/抑制</div><div>坐标网格化（500 m）、时间取整、低频群体抑制。</div></div>
+  <div class="lvl"><div class="bar" style="width:180px;background:#16a085">L3 聚合/合成</div><div>只留统计产品（速度指数、网格 OD）或合成数据。个体不可还原。</div></div>
+  <p style="margin-top:14px">本项目所有模拟数据集均使用 <span class="pill r">哈希 ID</span> <span class="pill r">纯模拟坐标</span> <span class="pill g">无真实个体</span>。</p>
+  <div class="callout warn"><span class="icon">⚠️</span><div>
+    <b>「假名化」≠「匿名」。</b> 研究者多次证明：仅靠轨迹的<b>时空唯一性</b>（你每天固定路线），就能从假名数据里重新认出个体。
+    所以本项目真实数据只在本机/归档仓，对外发布只给样本与聚合结果。</div></div>
+
+  <hr/>
+  <h2>七、把这些连起来看</h2>
+  <ul>
+    <li><b>误差</b>（第一节）解释了你数据里的噪点；</li>
+    <li><b>链路</b>（第二节）解释了为什么频率/字段各数据源不同；</li>
+    <li><b>采样间隔</b>（第三节）画出了分析的天花板；</li>
+    <li><b>定位技术</b>（第四节）决定了精度下限；</li>
+    <li><b>坐标偏移</b>（第五节）是跨源融合的必过门槛；</li>
+    <li><b>隐私</b>（第六节）决定你能公开到哪一步。</li>
+  </ul>
+  <p>读完这两页（加上 <a href="../guide/gps.html">GPS 与经纬度</a>），再看 <a href="../datasets/taxonomy.html">交通数据家族图鉴</a> 里 17 种数据的「能回答 / 不能回答」，你会明白那些结论都是从这套底层原理推出来的。
+
+  <div style="display:flex;gap:12px;flex-wrap:wrap;margin:24px 0 8px">
+    <a class="btn ghost" href="../guide/gps.html">← GPS 与经纬度</a>
+    <a class="btn" href="../datasets/taxonomy.html">交通数据家族图鉴 →</a>
+    <a class="btn ghost" href="../datasets/simulation.html">数据「毛病」图鉴 →</a>
+  </div>
+</div></main>
+
+<footer class="site-footer"><div class="container"><div class="row">
+  <div>出租车轨迹数据分析 · 从 GPS 到分析</div>
+  <div>数据归各自来源所有 · 代码 MIT</div>
+</div></div></footer>
+<button class="to-top" aria-label="返回顶部">↑</button>
+<script src="../assets/js/main.js"></script>
+</body>
+</html>
