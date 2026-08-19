@@ -15,6 +15,10 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib.patches import Patch
 
+# 中文字体配置（Win 自带 SimHei/微软雅黑；不设则中文乱码为方块）
+plt.rcParams['font.sans-serif'] = ['SimHei', 'Microsoft YaHei']
+plt.rcParams['axes.unicode_minus'] = False
+
 ROOT = r"C:\Users\wade\Documents\taxi"
 SIM = os.path.join(ROOT, "data", "sim", "modes")
 IMG = os.path.join(ROOT, "assets", "img")
@@ -69,51 +73,62 @@ def read_rows(path, n=6):
 # ---------- 1. 图表：分类覆盖 ----------
 counts = {c: sum(1 for m in manifest if m["cat"] == c) for c in CAT_ORDER}
 fig, ax = plt.subplots(figsize=(6.4, 3.2))
-xs = [f"{c} {CATS[c][1]}" for c in CAT_ORDER]
+xs = [f"{c} {CATS[c][0]}" for c in CAT_ORDER]
 ys = [counts[c] for c in CAT_ORDER]
 cols = ["#2563eb", "#16a085", "#d35400", "#7c3aed", "#db2777", "#0284c7"]
-bars = ax.bar(xs, ys, color=cols)
+bars = ax.bar(xs, ys, color=cols, edgecolor="white", linewidth=0.4)
 for b, v in zip(bars, ys):
     ax.text(b.get_x()+b.get_width()/2, v+0.05, str(v), ha="center", va="bottom", fontsize=11, fontweight="bold")
-ax.set_ylabel("Number of sample datasets")
-ax.set_title("Six categories of mobility data (17 samples)")
+ax.set_ylabel("样本数据集数")
+ax.set_title("六类交通数据各覆盖多少种样本（共 17 个）")
 ax.set_ylim(0, max(ys)+1)
 plt.xticks(rotation=20, ha="right", fontsize=9)
 fig.tight_layout(); fig.savefig(os.path.join(IMG, "tax_cat_coverage.png"), dpi=110); plt.close(fig)
 
-# ---------- 2. 图表：采样间隔谱（对数） ----------
-items = sorted(manifest, key=lambda m: SAMPLING_S.get(m["file"], 1))
-fig, ax = plt.subplots(figsize=(7.2, 6.0))
+# ---------- 2. 图表：采样间隔谱（线性；log+barh 在 matplotlib 会塌缩） ----------
+def k(file):  # manifest 的 file 带 .csv 后缀，去掉再查表
+    return file[:-4] if file.endswith(".csv") else file
+items = sorted(manifest, key=lambda m: SAMPLING_S.get(k(m["file"]), 1))
+fig, ax = plt.subplots(figsize=(7.6, 6.0))
 labels = [m["title"] for m in items]
-vals = [SAMPLING_S.get(m["file"], 1) for m in items]
+vals = [SAMPLING_S.get(k(m["file"]), 1) for m in items]
 colors = [CATS[m["cat"]][3] for m in items]
-ax.barh(range(len(items)), vals, color=colors)
+bars = ax.barh(range(len(items)), vals, color=colors, edgecolor="white", linewidth=0.4)
 ax.set_yticks(range(len(items))); ax.set_yticklabels(labels, fontsize=9)
-ax.set_xscale("log")
-ax.set_xlabel("Nominal sampling interval (seconds, log scale)")
-ax.set_title("Temporal resolution spectrum")
+ax.set_xlabel("名义采样间隔（秒，线性）")
+ax.set_title("时间采样间隔谱：采样越粗，能做的分析越受限")
 ax.invert_yaxis()
-for i, v in enumerate(vals):
-    ax.text(v*1.1, i, f"{v}s", va="center", fontsize=8, color="#444")
-legend = [Patch(facecolor=CATS[c][3], label=f"{c} {CATS[c][1]}") for c in CAT_ORDER]
+# 数值标签：放在条形右端外侧
+xmax = max(vals)
+ax.set_xlim(0, xmax * 1.18)
+for bar, v in zip(bars, vals):
+    label = f"{v}s" if v < 60 else (f"{v//60}min" if v < 3600 else f"{v//3600}h")
+    ax.text(bar.get_width() + xmax * 0.012, bar.get_y() + bar.get_height() / 2,
+            label, va="center", fontsize=8.5, color="#444")
+legend = [Patch(facecolor=CATS[c][3], label=f"{c} {CATS[c][0]}") for c in CAT_ORDER]
 ax.legend(handles=legend, fontsize=8, loc="lower right")
+ax.grid(axis="x", alpha=0.25)
 fig.tight_layout(); fig.savefig(os.path.join(IMG, "tax_sampling.png"), dpi=110); plt.close(fig)
 
-# ---------- 3. 图表：空间精度谱（对数） ----------
-items2 = sorted(manifest, key=lambda m: SPATIAL_M.get(m["file"], 1))
-fig, ax = plt.subplots(figsize=(7.2, 6.0))
+# ---------- 3. 图表：空间精度谱（线性） ----------
+items2 = sorted(manifest, key=lambda m: SPATIAL_M.get(k(m["file"]), 1))
+fig, ax = plt.subplots(figsize=(7.6, 6.0))
 labels2 = [m["title"] for m in items2]
-vals2 = [max(SPATIAL_M.get(m["file"], 1), 1) for m in items2]
+vals2 = [max(SPATIAL_M.get(k(m["file"]), 1), 1) for m in items2]
 colors2 = [CATS[m["cat"]][3] for m in items2]
-ax.barh(range(len(items2)), vals2, color=colors2)
+bars2 = ax.barh(range(len(items2)), vals2, color=colors2, edgecolor="white", linewidth=0.4)
 ax.set_yticks(range(len(items2))); ax.set_yticklabels(labels2, fontsize=9)
-ax.set_xscale("log")
-ax.set_xlabel("Spatial resolution (meters, log scale; fixed sensors ~1m point)")
-ax.set_title("Spatial precision spectrum")
+ax.set_xlabel("名义空间精度（米，线性；D 类固定检测≈1m 即点位）")
+ax.set_title("空间精度谱：精度越粗，越看不到个体路径")
 ax.invert_yaxis()
-for i, v in enumerate(vals2):
-    ax.text(v*1.1, i, f"{v}m", va="center", fontsize=8, color="#444")
+xmax2 = max(vals2)
+ax.set_xlim(0, xmax2 * 1.20)
+for bar, v in zip(bars2, vals2):
+    label = f"{v}m（点位）" if v <= 1 else (f"{v}m（站点）" if v == 300 else f"{v}m")
+    ax.text(bar.get_width() + xmax2 * 0.012, bar.get_y() + bar.get_height() / 2,
+            label, va="center", fontsize=8.5, color="#444")
 ax.legend(handles=legend, fontsize=8, loc="lower right")
+ax.grid(axis="x", alpha=0.25)
 fig.tight_layout(); fig.savefig(os.path.join(IMG, "tax_spatial.png"), dpi=110); plt.close(fig)
 
 # ---------- SVG：一图看懂「同一次出行，六类数据各留下什么痕迹」 ----------
